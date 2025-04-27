@@ -20,18 +20,49 @@ A mobile-responsive web application for managing parking tickets, entrances, exi
 - React-QR-Code for QR code generation
 - React-to-Print for printing receipts
 
-## Getting Started
+## Deployment on Vercel
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
-4. Open [http://localhost:3000](http://localhost:3000) with your browser
+This project is set up to be deployed on Vercel. To deploy properly, follow these steps:
+
+1. Push the code to a GitHub repository
+2. Connect the repository to Vercel
+3. Add the following environment variables in the Vercel dashboard:
+   - `DATABASE_URL`: The URL for your database. For production, use a PostgreSQL database like Vercel Postgres.
+
+### Important Notes
+
+- The build script includes `prisma generate` to ensure the Prisma client is properly generated during deployment.
+- Make sure the database schema is deployed to your production database before deploying the application.
+
+## Development
+
+To run the project locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npm run prisma:generate
+
+# Set up your database (initial migration)
+npm run prisma:migrate
+
+# Run the development server
+npm run dev
+```
+
+## Production
+
+For production builds:
+
+```bash
+# Build the application
+npm run build
+
+# Start the production server
+npm start
+```
 
 ## User Guide
 
