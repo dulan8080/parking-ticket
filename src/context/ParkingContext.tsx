@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { HourlyRate, ParkingEntry, VehicleType } from "../types";
-import { v4 as uuidv4 } from "uuid";
 
 type ParkingContextType = {
   vehicleTypes: VehicleType[];
@@ -122,7 +121,12 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         setParkingEntries([...parkingEntries, newEntry]);
         return newEntry;
       } else {
-        throw new Error("Failed to create parking entry");
+        // Parse the error response to get detailed error message
+        const errorData: { error?: string; details?: {receiptId?: string, entryTime?: string} } = await response.json();
+        const error = new Error(errorData.error || "Failed to create parking entry");
+        // Add details property to the error object
+        (error as Error & { details?: {receiptId?: string, entryTime?: string} }).details = errorData.details;
+        throw error;
       }
     } catch (error) {
       console.error("Error adding parking entry:", error);
@@ -170,40 +174,93 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
     const entryTime = new Date(entry.entryTime);
     const exitTime = new Date(entry.exitTime);
     
-    // Calculate duration in hours
+    // Calculate duration in hours - minimum 1 hour even if just a few seconds
     const durationMs = exitTime.getTime() - entryTime.getTime();
-    const durationHours = Math.ceil(durationMs / (1000 * 60 * 60));
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+    
+    console.log(`Calculating charges: Entry time ${entryTime}, Exit time ${exitTime}`);
+    console.log(`Duration: ${durationMs / (1000 * 60 * 60)} hours, rounded to ${durationHours} hours`);
+    
+    // Log the entry object for debugging
+    console.log('Entry object:', JSON.stringify(entry, null, 2));
+    
+    // Debug: vehicleType could be an object or a string
+    console.log('Vehicle Type (raw):', entry.vehicleType);
+    
+    // Try to determine vehicleTypeId
+    let vehicleTypeId = '';
+    if (typeof entry.vehicleType === 'string') {
+      vehicleTypeId = entry.vehicleType;
+    } else if (typeof entry.vehicleType === 'object' && entry.vehicleType !== null) {
+      vehicleTypeId = (entry.vehicleType as { id: string }).id || '';
+    }
+    
+    console.log('Extracted vehicleTypeId:', vehicleTypeId);
+    console.log('Available vehicleTypes:', JSON.stringify(vehicleTypes, null, 2));
     
     // Find the vehicle type
-    const vehicleType = vehicleTypes.find((vt) => vt.id === entry.vehicleType);
-    if (!vehicleType) return 0;
+    const vehicleType = vehicleTypes.find((vt) => vt.id === vehicleTypeId);
+    if (!vehicleType) {
+      console.error(`Vehicle type not found with ID: ${vehicleTypeId}`);
+      return 0;
+    }
+    
+    console.log('Found vehicle type:', JSON.stringify(vehicleType, null, 2));
+    
+    // If no rates are defined, return 0
+    if (!vehicleType.rates || vehicleType.rates.length === 0) {
+      console.warn(`No rates defined for vehicle type: ${vehicleType.name}`);
+      return 0;
+    }
+    
+    console.log('Rates for vehicle type:', JSON.stringify(vehicleType.rates, null, 2));
     
     let totalAmount = 0;
     
     // Calculate charges based on hourly rates
     for (let hour = 1; hour <= durationHours; hour++) {
+      // Find the rate for the current hour
       const rate = vehicleType.rates.find((r) => r.hour === hour);
+      
       if (rate) {
+        console.log(`Hour ${hour}: Adding ${rate.price} to total`);
         totalAmount += rate.price;
       } else {
-        // Use last available rate for hours beyond what is defined
+        // For hours beyond what's defined, use the last available rate
         const lastRate = vehicleType.rates[vehicleType.rates.length - 1];
-        totalAmount += lastRate.price;
+        if (lastRate) {
+          console.log(`Hour ${hour}: Using last rate ${lastRate.price}`);
+          totalAmount += lastRate.price;
+        } else if (vehicleType.rates.length > 0) {
+          // Fallback to first hour rate if no last rate
+          console.log(`Hour ${hour}: Using first hour rate ${vehicleType.rates[0].price}`);
+          totalAmount += vehicleType.rates[0].price;
+        }
       }
     }
     
+    console.log(`Total amount: ${totalAmount}`);
     return totalAmount;
   };
 
   const exitVehicle = async (entryId: string): Promise<ParkingEntry | null> => {
     try {
+      console.log("Starting exitVehicle for entry ID:", entryId);
+      
       // First get the entry to calculate charges
       const entryResponse = await fetch(`/api/parking-entries/${entryId}`);
+      
+      console.log("Entry fetch response status:", entryResponse.status);
+      
       if (!entryResponse.ok) {
-        throw new Error("Failed to fetch parking entry");
+        const errorText = await entryResponse.text();
+        console.error("Error fetching entry:", errorText);
+        throw new Error(`Failed to fetch parking entry: ${errorText}`);
       }
       
       const entry = await entryResponse.json();
+      console.log("Retrieved entry for exit:", JSON.stringify(entry, null, 2));
+      
       if (entry.exitTime) {
         throw new Error("This vehicle has already exited");
       }
@@ -214,7 +271,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       
       // Calculate duration in hours
       const durationMs = exitTime.getTime() - entryTime.getTime();
-      const durationHours = Math.ceil(durationMs / (1000 * 60 * 60));
+      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+      
+      console.log(`Calculated duration: ${durationHours} hours`);
       
       // Calculate charges
       const totalAmount = calculateCharges({
@@ -222,19 +281,28 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         exitTime: exitTime.toISOString()
       });
       
+      console.log(`Calculated total amount: ${totalAmount}`);
+      
       // Update the entry with exit information
+      const exitPayload = {
+        id: entryId,
+        totalAmount,
+        duration: durationHours
+      };
+      
+      console.log("Sending exit payload:", JSON.stringify(exitPayload, null, 2));
+      
       const exitResponse = await fetch('/api/parking-entries/exit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: entryId,
-          totalAmount,
-          duration: durationHours
-        })
+        body: JSON.stringify(exitPayload)
       });
+      
+      console.log("Exit API response status:", exitResponse.status);
       
       if (exitResponse.ok) {
         const updatedEntry = await exitResponse.json();
+        console.log("Received updated entry:", JSON.stringify(updatedEntry, null, 2));
         
         // Update local state
         setParkingEntries(parkingEntries.map(e => 
@@ -243,7 +311,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         
         return updatedEntry;
       } else {
-        throw new Error("Failed to process exit");
+        const errorText = await exitResponse.text();
+        console.error("Error processing exit:", errorText);
+        throw new Error(`Failed to process exit: ${errorText}`);
       }
     } catch (error) {
       console.error("Error processing exit:", error);

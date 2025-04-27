@@ -7,12 +7,13 @@ import Input from "./ui/Input";
 import Card from "./ui/Card";
 import Receipt from "./Receipt";
 import QrScanner from "./QrScanner";
+import { ParkingEntry } from "../types";
 
 const ExitForm = () => {
-  const { findParkingEntry, exitVehicle, findParkingEntryByReceiptId, parkingEntries } = useParkingContext();
+  const { findParkingEntry, exitVehicle, findParkingEntryByReceiptId } = useParkingContext();
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [error, setError] = useState("");
-  const [exitedEntry, setExitedEntry] = useState<any>(null);
+  const [exitedEntry, setExitedEntry] = useState<ParkingEntry | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,29 +33,43 @@ const ExitForm = () => {
   const processExit = async (vehicleNum: string) => {
     try {
       setIsProcessing(true);
+      console.log("Starting processExit with vehicle number:", vehicleNum);
       
       // Find the entry
       const entry = await findParkingEntry(vehicleNum);
+      
+      console.log("Found entry:", entry ? JSON.stringify(entry, null, 2) : "No entry found");
       
       if (!entry) {
         setError("No active parking entry found for this vehicle");
         setIsProcessing(false);
         return;
       }
+      
+      if (entry.exitTime) {
+        setError(`This vehicle (${vehicleNum}) has already exited at ${new Date(entry.exitTime).toLocaleString()}`);
+        setIsProcessing(false);
+        return;
+      }
 
+      console.log("Processing exit for entry ID:", entry.id);
+      
       // Process the exit
       const updatedEntry = await exitVehicle(entry.id);
       
+      console.log("Updated entry after exit:", updatedEntry ? JSON.stringify(updatedEntry, null, 2) : "Failed to update entry");
+      
       if (updatedEntry) {
+        console.log("Exit processed successfully. Total amount:", updatedEntry.totalAmount);
         setExitedEntry(updatedEntry);
         setShowReceipt(true);
         setVehicleNumber("");
       } else {
-        setError("Could not process exit for this vehicle");
+        setError("Could not process exit for this vehicle. Please check console for details.");
       }
     } catch (err) {
       console.error("Error processing exit:", err);
-      setError("An error occurred while processing the exit. Please try again.");
+      setError(`An error occurred while processing the exit: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }

@@ -26,6 +26,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if vehicle with the same number is already in the parking lot
+    const existingEntry = await dbService.findActiveParkingEntryByVehicleNumber(vehicleNumber);
+    
+    if (existingEntry) {
+      // Format entry time for better readability
+      const entryTime = new Date(existingEntry.entryTime).toLocaleString();
+      
+      return NextResponse.json(
+        { 
+          error: `Vehicle with number ${vehicleNumber} is already in the parking lot.`,
+          details: {
+            receiptId: existingEntry.receiptId,
+            entryTime: entryTime
+          }
+        },
+        { status: 409 } // 409 Conflict status code
+      );
+    }
+
     const entry = await dbService.createParkingEntry({
       vehicleNumber,
       vehicleTypeId,

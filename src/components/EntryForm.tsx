@@ -6,19 +6,22 @@ import Button from "./ui/Button";
 import Input from "./ui/Input";
 import Card from "./ui/Card";
 import Receipt from "./Receipt";
+import { ParkingEntry } from "../types";
 
 const EntryForm = () => {
-  const { vehicleTypes, addParkingEntry } = useParkingContext();
+  const { vehicleTypes, addParkingEntry, findParkingEntry } = useParkingContext();
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [selectedVehicleType, setSelectedVehicleType] = useState("");
   const [error, setError] = useState("");
-  const [createdEntry, setCreatedEntry] = useState<any>(null);
+  const [errorDetails, setErrorDetails] = useState<{receiptId?: string, entryTime?: string} | null>(null);
+  const [createdEntry, setCreatedEntry] = useState<ParkingEntry | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorDetails(null);
 
     if (!vehicleNumber.trim()) {
       setError("Vehicle number is required");
@@ -32,6 +35,20 @@ const EntryForm = () => {
 
     try {
       setIsProcessing(true);
+      
+      // Check if vehicle with same number is already parked (has no exit time)
+      const existingEntry = await findParkingEntry(vehicleNumber);
+      
+      if (existingEntry && !existingEntry.exitTime) {
+        setError(`Vehicle with number ${vehicleNumber} is already in the parking lot.`);
+        setErrorDetails({
+          receiptId: existingEntry.receiptId,
+          entryTime: new Date(existingEntry.entryTime).toLocaleString()
+        });
+        setIsProcessing(false);
+        return;
+      }
+
       const entry = await addParkingEntry(vehicleNumber, selectedVehicleType);
       console.log("Created entry:", entry); // Debug log
       setCreatedEntry(entry);
@@ -42,7 +59,17 @@ const EntryForm = () => {
       setSelectedVehicleType("");
     } catch (err) {
       console.error("Error creating entry:", err);
-      setError("Failed to create parking entry. Please try again.");
+      
+      // Check if the error has details property (from API)
+      const error = err as Error & { details?: {receiptId?: string, entryTime?: string} };
+      
+      // Check if the error has details property (from API)
+      if (error.details) {
+        setError(error.message || "Failed to create parking entry.");
+        setErrorDetails(error.details);
+      } else {
+        setError(error.message || "Failed to create parking entry. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -178,8 +205,14 @@ const EntryForm = () => {
       <h2 className="text-xl font-semibold mb-4">Vehicle Entry</h2>
       
       {error && (
-        <div className="bg-red-50 text-red-500 p-2 rounded mb-4">
-          {error}
+        <div className="bg-red-50 text-red-500 p-3 rounded mb-4">
+          <p className="font-medium">{error}</p>
+          {errorDetails && (
+            <div className="mt-2 text-sm">
+              <p><span className="font-semibold">Receipt ID:</span> {errorDetails.receiptId}</p>
+              <p><span className="font-semibold">Entry Time:</span> {errorDetails.entryTime}</p>
+            </div>
+          )}
         </div>
       )}
       

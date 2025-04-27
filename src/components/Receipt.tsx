@@ -193,6 +193,18 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
     }
   };
 
+  // Function to format currency in Sri Lankan Rupees
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined) return 'LKR 0.00';
+    
+    return new Intl.NumberFormat('si-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
   return (
     <div className="mb-4">
       <div 
@@ -235,7 +247,7 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
               </div>
               <div className="flex justify-between mb-2 text-lg font-bold mt-3 pt-2 border-t">
                 <span>Total Amount:</span>
-                <span>₹{entry.totalAmount}</span>
+                <span>{formatCurrency(entry.totalAmount)}</span>
               </div>
             </>
           )}

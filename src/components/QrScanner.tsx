@@ -48,7 +48,8 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
             setError("Invalid QR code. Please scan a valid parking receipt QR code.");
           }
         },
-        (errorMessage) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (_errorMessage) => {
           // Ignoring the error callback to avoid flooding with errors
           // while scanning is active
         }

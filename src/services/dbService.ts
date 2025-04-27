@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "../lib/prisma";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { HourlyRate, ParkingEntry, VehicleType } from "@prisma/client";
 
 // VehicleType Services

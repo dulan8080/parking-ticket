@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Card from "../../components/ui/Card";
@@ -99,18 +100,37 @@ export default function SettingsPage() {
   const [rates, setRates] = useState<HourlyRate[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Format currency in Sri Lankan Rupees
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('si-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
   // Load rates when vehicle type changes
   const handleVehicleSelect = (vehicleId: string) => {
+    console.log(`Selected vehicle type with ID: ${vehicleId}`);
+    
     setActiveVehicleId(vehicleId);
     const selectedVehicle = vehicleTypes.find((vt) => vt.id === vehicleId);
+    
     if (selectedVehicle) {
+      console.log(`Found vehicle: ${selectedVehicle.name}`, JSON.stringify(selectedVehicle, null, 2));
+      
       // Make sure we have rates for all 24 hours
       const updatedRates: HourlyRate[] = [];
       for (let i = 1; i <= 24; i++) {
         const existingRate = selectedVehicle.rates.find((r) => r.hour === i);
         updatedRates.push(existingRate || { hour: i, price: 0 });
       }
+      
+      console.log(`Prepared rates for UI:`, JSON.stringify(updatedRates, null, 2));
       setRates(updatedRates);
+    } else {
+      console.error(`Vehicle with ID ${vehicleId} not found in the available types`);
     }
   };
 
@@ -167,10 +187,22 @@ export default function SettingsPage() {
   };
 
   // Save rates for current vehicle
-  const handleSaveRates = () => {
+  const handleSaveRates = async () => {
     if (activeVehicleId) {
-      updateVehicleRates(activeVehicleId, rates);
-      alert("Rates saved successfully!");
+      console.log(`Saving rates for vehicle ID: ${activeVehicleId}`);
+      console.log(`Rates to save:`, JSON.stringify(rates, null, 2));
+      
+      try {
+        await updateVehicleRates(activeVehicleId, rates);
+        console.log(`Rates saved successfully for vehicle ID: ${activeVehicleId}`);
+        alert("Rates saved successfully!");
+      } catch (error) {
+        console.error(`Error saving rates:`, error);
+        alert(`Failed to save rates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    } else {
+      console.error("Cannot save rates: No active vehicle selected");
+      alert("Please select a vehicle type first");
     }
   };
 
@@ -273,7 +305,7 @@ export default function SettingsPage() {
               className={`p-3 border rounded-lg flex flex-col items-center ${selectedIconType === "custom" ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
             >
               {customIcon ? (
-                <img src={customIcon} alt="Custom icon" className="w-6 h-6 object-contain" />
+                <Image src={customIcon} alt="Custom icon" width={24} height={24} className="w-6 h-6 object-contain" />
               ) : (
                 <div className="text-gray-700">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,7 +385,7 @@ export default function SettingsPage() {
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 p-2 text-left">Hour</th>
-                      <th className="border border-gray-300 p-2 text-left">Price (₹)</th>
+                      <th className="border border-gray-300 p-2 text-left">Price (LKR)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -362,14 +394,20 @@ export default function SettingsPage() {
                         <td className="border border-gray-300 p-2">
                           {rate.hour === 1 ? "1st hour" : `${rate.hour}${rate.hour <= 3 ? ["nd", "rd"][rate.hour - 2] : "th"} hour`}
                         </td>
-                        <td className="border border-gray-300 p-2">
-                          <Input
-                            type="number"
-                            value={rate.price}
-                            onChange={(e) => handleRateChange(rate.hour, e.target.value)}
-                            min={0}
-                            className="mb-0"
-                          />
+                        <td className="border border-gray-300 p-2 relative">
+                          <div className="flex items-center">
+                            <span className="absolute left-3 text-gray-500">LKR</span>
+                            <Input
+                              type="number"
+                              value={rate.price}
+                              onChange={(e) => handleRateChange(rate.hour, e.target.value)}
+                              min={0}
+                              className="mb-0 pl-12"
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {formatCurrency(rate.price)}
+                          </div>
                         </td>
                       </tr>
                     ))}
