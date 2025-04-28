@@ -37,7 +37,11 @@ export async function createVehicleType(name: string, iconData?: string): Promis
       // Generate a temporary ID since we don't have the actual ID yet
       const tempId = 'temp-' + Date.now();
       console.log(`DB Service: Saving icon with temp ID: ${tempId}`);
-      iconUrl = await saveIcon(iconData, tempId);
+      iconUrl = await saveIcon(iconData, tempId, name);
+    } else {
+      // No custom icon provided, use predefined based on name
+      console.log(`DB Service: Using predefined icon based on name: ${name}`);
+      iconUrl = await saveIcon(null, 'predefined', name);
     }
     
     // Create the vehicle type with the icon URL

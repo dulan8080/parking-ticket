@@ -81,6 +81,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         const newVehicleType = await response.json();
         console.log("Context: Vehicle type added successfully:", newVehicleType);
         setVehicleTypes([...vehicleTypes, newVehicleType]);
+        
+        // Return the created vehicle type
+        return newVehicleType;
       } else {
         const errorText = await response.text();
         console.error("Context: Error adding vehicle type:", errorText);

@@ -154,11 +154,17 @@ export default function SettingsPage() {
       setIsLoading(true);
       setError(null);
       
-      // Pass the custom icon if the selected icon type is "custom"
+      // Only use custom icon if explicitly selected
       const iconToSave = selectedIconType === "custom" ? customIcon : null;
       
       // Add the vehicle type with the name and the custom icon
-      await addVehicleType(newVehicleName, iconToSave);
+      const newVehicle = await addVehicleType(newVehicleName, iconToSave);
+      
+      // If added successfully, select the new vehicle
+      if (newVehicle?.id) {
+        setActiveVehicleId(newVehicle.id);
+        handleVehicleSelect(newVehicle.id);
+      }
       
       // Reset the form fields
       setNewVehicleName("");
