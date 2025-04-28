@@ -72,7 +72,7 @@ export default function Home() {
         {activeTab === "entry" ? <EntryForm /> : <ExitForm />}
         
         <footer className="mt-8 text-center text-sm text-gray-500">
-          <p>© 2023 Parking Ticket System</p>
+          <p>ParkZynk By Zynknet Technology Solutions 2025</p>
         </footer>
       </div>
     </main>
