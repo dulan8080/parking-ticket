@@ -59,6 +59,7 @@ const EntryForm = () => {
       // Reset form
       setVehicleNumber("");
       setSelectedVehicleType("");
+      setIsPickAndGo(false);
     } catch (err) {
       console.error("Error creating entry:", err);
       
@@ -80,6 +81,7 @@ const EntryForm = () => {
   const handleNewEntry = () => {
     setShowReceipt(false);
     setCreatedEntry(null);
+    setIsPickAndGo(false);
   };
 
   // Function to get appropriate icon for vehicle type
