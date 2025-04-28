@@ -88,13 +88,15 @@ export async function createParkingEntry(data: {
   vehicleNumber: string;
   vehicleTypeId: string;
   receiptId: string;
+  isPickAndGo?: boolean;
 }): Promise<ParkingEntry> {
   return await prisma.parkingEntry.create({
     data: {
       vehicleNumber: data.vehicleNumber,
       vehicleTypeId: data.vehicleTypeId,
       receiptId: data.receiptId,
-      entryTime: new Date()
+      entryTime: new Date(),
+      isPickAndGo: data.isPickAndGo || false
     },
     include: { vehicleType: true }
   });

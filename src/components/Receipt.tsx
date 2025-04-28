@@ -163,11 +163,11 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
             <span>{entry.entryTime ? formatDate(entry.entryTime) : 'N/A'}</span>
           </div>
           
-          {/* Add Pick&Go notice */}
+          {/* Updated Pick&Go notice */}
           {entry.isPickAndGo && (
             <div className="bg-yellow-50 p-3 my-2 rounded-md border border-yellow-200">
-              <p className="text-yellow-800 font-medium mb-1">You Have selected Pick&Go</p>
-              <p className="text-yellow-700 text-sm">You have 15min Free Of Charge. You can Not leave the vehicle at Parking premise. After 15min You will be charged.</p>
+              <p className="text-yellow-800 font-medium mb-1">Important:</p>
+              <p className="text-yellow-700 text-sm">You have selected Pick&Go service. You will have 15 minutes free of charge. You cannot leave the vehicle at the parking premise. After 15 minutes, standard parking charges will apply.</p>
             </div>
           )}
           

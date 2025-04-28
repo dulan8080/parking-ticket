@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { vehicleNumber, vehicleTypeId, receiptId } = data;
+    const { vehicleNumber, vehicleTypeId, receiptId, isPickAndGo } = data;
 
     if (!vehicleNumber || !vehicleTypeId || !receiptId) {
       return NextResponse.json(
@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
     const entry = await dbService.createParkingEntry({
       vehicleNumber,
       vehicleTypeId,
-      receiptId
+      receiptId,
+      isPickAndGo: isPickAndGo || false
     });
     
     return NextResponse.json(entry, { status: 201 });
