@@ -7,9 +7,17 @@ import { saveIcon } from "../lib/iconUtils";
 
 // VehicleType Services
 export async function getAllVehicleTypes(): Promise<VehicleType[]> {
-  return await prisma.vehicleType.findMany({
-    include: { rates: true }
-  });
+  try {
+    console.log("DB Service: Fetching all vehicle types");
+    const vehicleTypes = await prisma.vehicleType.findMany({
+      include: { rates: true }
+    });
+    console.log(`DB Service: Found ${vehicleTypes.length} vehicle types`);
+    return vehicleTypes;
+  } catch (error) {
+    console.error("DB Service Error fetching vehicle types:", error);
+    throw error;
+  }
 }
 
 export async function getVehicleTypeById(id: string): Promise<VehicleType | null> {
@@ -20,44 +28,54 @@ export async function getVehicleTypeById(id: string): Promise<VehicleType | null
 }
 
 export async function createVehicleType(name: string, iconData?: string): Promise<VehicleType> {
-  let iconUrl = null;
-  
-  // If icon data is provided, save it
-  if (iconData) {
-    // Generate a temporary ID since we don't have the actual ID yet
-    const tempId = 'temp-' + Date.now();
-    iconUrl = await saveIcon(iconData, tempId);
-  }
-  
-  // Create the vehicle type with the icon URL
-  const vehicleType = await prisma.vehicleType.create({
-    data: { 
-      name,
-      iconUrl
+  try {
+    console.log(`DB Service: Creating vehicle type with name: ${name}`);
+    let iconUrl = null;
+    
+    // If icon data is provided, save it
+    if (iconData) {
+      // Generate a temporary ID since we don't have the actual ID yet
+      const tempId = 'temp-' + Date.now();
+      console.log(`DB Service: Saving icon with temp ID: ${tempId}`);
+      iconUrl = await saveIcon(iconData, tempId);
     }
-  });
-  
-  // If we saved an icon with a temporary ID, update the filename to use the actual ID
-  if (iconUrl && iconData) {
-    // Extract the filename from the path
-    const filename = iconUrl.split('/').pop();
-    if (filename) {
-      // Replace the temp ID with the actual ID
-      const newFilename = filename.replace(/^temp-[^-]+-/, `${vehicleType.id}-`);
-      const newIconUrl = `/images/vehicle-icons/${newFilename}`;
-      
-      // Update the vehicle type with the new icon URL
-      await prisma.vehicleType.update({
-        where: { id: vehicleType.id },
-        data: { iconUrl: newIconUrl }
-      });
-      
-      // Update the return value
-      vehicleType.iconUrl = newIconUrl;
+    
+    // Create the vehicle type with the icon URL
+    console.log(`DB Service: Creating vehicle type in database`);
+    const vehicleType = await prisma.vehicleType.create({
+      data: { 
+        name,
+        iconUrl
+      }
+    });
+    
+    // If we saved an icon with a temporary ID, update the filename to use the actual ID
+    if (iconUrl && iconData) {
+      // Extract the filename from the path
+      const filename = iconUrl.split('/').pop();
+      if (filename) {
+        // Replace the temp ID with the actual ID
+        const newFilename = filename.replace(/^temp-[^-]+-/, `${vehicleType.id}-`);
+        const newIconUrl = `/images/vehicle-icons/${newFilename}`;
+        
+        console.log(`DB Service: Updating icon URL from ${iconUrl} to ${newIconUrl}`);
+        // Update the vehicle type with the new icon URL
+        await prisma.vehicleType.update({
+          where: { id: vehicleType.id },
+          data: { iconUrl: newIconUrl }
+        });
+        
+        // Update the return value
+        vehicleType.iconUrl = newIconUrl;
+      }
     }
+    
+    console.log(`DB Service: Vehicle type created successfully:`, JSON.stringify(vehicleType));
+    return vehicleType;
+  } catch (error) {
+    console.error("DB Service Error creating vehicle type:", error);
+    throw error;
   }
-  
-  return vehicleType;
 }
 
 export async function updateVehicleRates(id: string, rates: { hour: number; price: number }[]): Promise<VehicleType> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Button from "../../components/ui/Button";
@@ -101,6 +101,13 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [editingVehicleName, setEditingVehicleName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Log vehicle types when they change for debugging
+  useEffect(() => {
+    console.log("Settings: Vehicle types updated:", vehicleTypes);
+  }, [vehicleTypes]);
 
   // Format currency in Sri Lankan Rupees
   const formatCurrency = (amount: number) => {
@@ -137,18 +144,31 @@ export default function SettingsPage() {
   };
 
   // Add new vehicle type
-  const handleAddVehicle = () => {
-    if (newVehicleName.trim()) {
+  const handleAddVehicle = async () => {
+    if (!newVehicleName.trim()) {
+      setError("Vehicle name is required");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
       // Pass the custom icon if the selected icon type is "custom"
       const iconToSave = selectedIconType === "custom" ? customIcon : null;
       
       // Add the vehicle type with the name and the custom icon
-      addVehicleType(newVehicleName, iconToSave);
+      await addVehicleType(newVehicleName, iconToSave);
       
       // Reset the form fields
       setNewVehicleName("");
       setCustomIcon(null);
       setSelectedIconType("car");
+    } catch (err) {
+      console.error("Settings: Error adding vehicle type:", err);
+      setError(err instanceof Error ? err.message : "Failed to add vehicle type");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -278,6 +298,23 @@ export default function SettingsPage() {
         Back to Home
       </Button>
       
+      {/* Add debug information */}
+      <div className="mb-4 p-2 bg-gray-100 text-xs">
+        <p>Vehicle Types Count: {vehicleTypes.length}</p>
+        <details>
+          <summary>Debug Info</summary>
+          <pre className="overflow-auto max-h-40 p-2 bg-gray-800 text-white">
+            {JSON.stringify({ vehicleTypes }, null, 2)}
+          </pre>
+        </details>
+      </div>
+      
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-500 rounded">
+          {error}
+        </div>
+      )}
+      
       <Card className="mb-6">
         <h2 className="text-xl font-semibold mb-4">Add Vehicle Type</h2>
         <div className="mb-4">
@@ -285,6 +322,7 @@ export default function SettingsPage() {
             placeholder="Vehicle Type Name"
             value={newVehicleName}
             onChange={(e) => setNewVehicleName(e.target.value)}
+            disabled={isLoading}
           />
         </div>
         
@@ -377,7 +415,13 @@ export default function SettingsPage() {
           </div>
         </div>
         
-        <Button onClick={handleAddVehicle} className="w-full">Add Vehicle Type</Button>
+        <Button 
+          onClick={handleAddVehicle} 
+          className="w-full"
+          disabled={isLoading}
+        >
+          {isLoading ? "Adding..." : "Add Vehicle Type"}
+        </Button>
       </Card>
       
       <Card className="mb-6">

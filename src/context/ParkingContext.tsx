@@ -27,21 +27,37 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        console.log("Context: Loading initial data");
+        
         // Fetch vehicle types from API
+        console.log("Context: Fetching vehicle types");
         const vehicleTypesResponse = await fetch('/api/vehicle-types');
+        console.log("Context: Vehicle types response status:", vehicleTypesResponse.status);
+        
         if (vehicleTypesResponse.ok) {
           const data = await vehicleTypesResponse.json();
+          console.log("Context: Vehicle types fetched successfully:", data);
           setVehicleTypes(data);
+        } else {
+          const errorText = await vehicleTypesResponse.text();
+          console.error("Context: Error fetching vehicle types:", errorText);
         }
 
         // Fetch parking entries from API
+        console.log("Context: Fetching parking entries");
         const entriesResponse = await fetch('/api/parking-entries');
+        console.log("Context: Parking entries response status:", entriesResponse.status);
+        
         if (entriesResponse.ok) {
           const data = await entriesResponse.json();
+          console.log("Context: Parking entries fetched successfully:", data.length);
           setParkingEntries(data);
+        } else {
+          const errorText = await entriesResponse.text();
+          console.error("Context: Error fetching parking entries:", errorText);
         }
       } catch (error) {
-        console.error("Error loading initial data:", error);
+        console.error("Context: Error loading initial data:", error);
       }
     };
 
@@ -50,18 +66,28 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
 
   const addVehicleType = async (name: string, iconData?: string | null) => {
     try {
+      console.log(`Context: Adding vehicle type: ${name}`);
+      console.log("Context: Has icon data:", !!iconData);
+      
       const response = await fetch('/api/vehicle-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, iconData })
       });
+      
+      console.log("Context: Add vehicle type response status:", response.status);
 
       if (response.ok) {
         const newVehicleType = await response.json();
+        console.log("Context: Vehicle type added successfully:", newVehicleType);
         setVehicleTypes([...vehicleTypes, newVehicleType]);
+      } else {
+        const errorText = await response.text();
+        console.error("Context: Error adding vehicle type:", errorText);
+        throw new Error(`Failed to add vehicle type: ${errorText}`);
       }
     } catch (error) {
-      console.error("Error adding vehicle type:", error);
+      console.error("Context: Error adding vehicle type:", error);
       throw error;
     }
   };
