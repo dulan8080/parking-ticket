@@ -82,17 +82,36 @@ const ExitForm = () => {
 
   const handleScanSuccess = async (receiptId: string) => {
     try {
-      // Find entry by receipt ID
-      const entry = await findParkingEntryByReceiptId(receiptId);
-
-      if (entry && !entry.exitTime) {
-        await processExit(entry.vehicleNumber);
-      } else {
-        setError("No active entry found with this QR code");
+      console.log("QR scan successful, received data:", receiptId);
+      
+      // Try to find entry by receipt ID first (if it looks like a receipt ID)
+      if (receiptId.startsWith("PK-")) {
+        console.log("Scanning as receipt ID:", receiptId);
+        const entry = await findParkingEntryByReceiptId(receiptId);
+        
+        if (entry && !entry.exitTime) {
+          await processExit(entry.vehicleNumber);
+          return;
+        }
       }
+      
+      // If not a receipt ID or no entry found, try as vehicle number
+      console.log("Trying QR content as vehicle number:", receiptId);
+      // Simple validation - vehicle numbers are typically at least 3 chars
+      if (receiptId.length >= 3) {
+        const entry = await findParkingEntry(receiptId);
+        
+        if (entry && !entry.exitTime) {
+          await processExit(receiptId);
+          return;
+        }
+      }
+      
+      // If we got here, no valid entry was found
+      setError("No active parking entry found with this QR code");
     } catch (err) {
       console.error("Error processing QR scan:", err);
-      setError("An error occurred while processing the QR code");
+      setError(`Error processing QR code: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setShowScanner(false);
     }
@@ -178,6 +197,7 @@ const ExitForm = () => {
           value={vehicleNumber}
           onChange={(e) => setVehicleNumber(e.target.value)}
           disabled={isProcessing}
+          uppercase={true}
         />
         
         <Button type="submit" className="w-full" disabled={isProcessing}>

@@ -249,10 +249,12 @@ const EntryForm = () => {
         
         <Input
           label="Vehicle Number"
-          placeholder="Enter vehicle number (e.g., AB12C3456)"
+          placeholder="Enter vehicle number"
           value={vehicleNumber}
           onChange={(e) => setVehicleNumber(e.target.value)}
           disabled={isProcessing}
+          uppercase={true}
+          required
         />
         
         <Button type="submit" className="w-full" disabled={isProcessing}>

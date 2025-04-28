@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode";
 import Button from "./ui/Button";
 
 interface QrScannerProps {
@@ -16,59 +16,86 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Initialize scanner on component mount
+    if (!scannerRef.current) {
+      try {
+        scannerRef.current = new Html5Qrcode("qr-reader");
+      } catch (err) {
+        console.error("Failed to initialize QR scanner:", err);
+        setError("Failed to initialize scanner. Please try again.");
+      }
+    }
+
+    // Cleanup scanner when component unmounts
     return () => {
-      // Cleanup scanner when component unmounts
-      if (scannerRef.current && scanning) {
-        scannerRef.current.stop().catch(error => console.error("Failed to stop scanner:", error));
+      if (scannerRef.current) {
+        if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
+          scannerRef.current
+            .stop()
+            .catch(error => console.error("Failed to stop scanner:", error));
+        }
+        scannerRef.current = null;
       }
     };
-  }, [scanning]);
+  }, []);
 
   const startScanner = async () => {
-    if (!containerRef.current) return;
+    if (!scannerRef.current) {
+      try {
+        scannerRef.current = new Html5Qrcode("qr-reader");
+      } catch (err) {
+        console.error("Failed to initialize QR scanner:", err);
+        setError("Failed to initialize scanner. Please try again.");
+        return;
+      }
+    }
     
     setError("");
     setScanning(true);
     
     try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      scannerRef.current = html5QrCode;
+      const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        formatsToSupport: [Html5Qrcode.FORMATS.QR_CODE],
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
+      };
       
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-      
-      await html5QrCode.start(
+      await scannerRef.current.start(
         { facingMode: "environment" },
         config,
         (decodedText) => {
-          // Check if the decoded text is a valid receipt ID (e.g., starts with PK-)
-          if (decodedText && decodedText.startsWith("PK-")) {
-            onScanSuccess(decodedText);
-            stopScanner();
-          } else {
-            setError("Invalid QR code. Please scan a valid parking receipt QR code.");
-          }
+          console.log("QR Code scanned, decoded text:", decodedText);
+          
+          // Accept any text as valid for now - we'll check in the callback
+          onScanSuccess(decodedText);
+          stopScanner();
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        (_errorMessage) => {
-          // Ignoring the error callback to avoid flooding with errors
-          // while scanning is active
+        (errorMessage) => {
+          // Only log to console to avoid flooding UI with errors during scanning
+          console.debug("QR scan error:", errorMessage);
         }
       );
     } catch (err) {
       setScanning(false);
-      setError("Could not start camera. Please check camera permissions.");
       console.error("QR Scanner error:", err);
+      setError("Could not start camera. Please check camera permissions and try again.");
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current) {
+    if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
       try {
         await scannerRef.current.stop();
-        setScanning(false);
       } catch (error) {
         console.error("Failed to stop scanner:", error);
+      } finally {
+        setScanning(false);
       }
+    } else {
+      setScanning(false);
     }
   };
 

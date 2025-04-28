@@ -1,18 +1,39 @@
 "use client";
 
-import { InputHTMLAttributes } from "react";
+import { InputHTMLAttributes, ChangeEvent } from "react";
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
+  uppercase?: boolean;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
 const Input = ({
   label,
   error,
   className = "",
+  uppercase = false,
+  onChange,
   ...props
 }: InputProps) => {
+  // Handle input change with uppercase conversion if needed
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (uppercase) {
+      // Create a new event with uppercase value
+      const newEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: e.target.value.toUpperCase()
+        }
+      };
+      onChange && onChange(newEvent);
+    } else {
+      onChange && onChange(e);
+    }
+  };
+
   return (
     <div className="mb-4">
       {label && (
@@ -26,7 +47,8 @@ const Input = ({
       <input
         className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
           error ? "border-red-500" : ""
-        } ${className}`}
+        } ${uppercase ? "uppercase" : ""} ${className}`}
+        onChange={handleChange}
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-500">{error}</p>}

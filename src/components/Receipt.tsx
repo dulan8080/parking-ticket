@@ -2,9 +2,9 @@
 
 import { useRef, useEffect, useState } from "react";
 import { format, formatDistanceStrict, isValid } from "date-fns";
-// Temporarily removing potentially incompatible dependencies
+// Uncomment the QRCode import
 // import ReactToPrint from "react-to-print";
-// import QRCode from "react-qr-code";
+import QRCode from "react-qr-code";
 import { ParkingEntry } from "../types";
 import Button from "./ui/Button";
 
@@ -15,13 +15,19 @@ type ReceiptProps = {
 
 const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  // Replace qrCanvasRef with qrValue
   const [isPrinting, setIsPrinting] = useState(false);
+  const [qrValue, setQrValue] = useState("");
 
   // Debug on mount
   useEffect(() => {
     console.log("Receipt Component Mounted");
     console.log("Entry data:", JSON.stringify(entry, null, 2));
+    
+    // Set QR code value
+    if (entry.receiptId) {
+      setQrValue(entry.receiptId);
+    }
   }, [entry]);
 
   const formatDate = (dateString: string) => {
@@ -87,84 +93,6 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
       window.location.reload();
     }, 100);
   };
-
-  // Generate QR code data URL - a simple visual representation without actual QR code
-  useEffect(() => {
-    if (!qrCanvasRef.current) return;
-    
-    const canvas = qrCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Set background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw border
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
-    
-    const generateQRCodePattern = () => {
-      // Draw a pattern resembling a QR code
-      ctx.fillStyle = 'black';
-      
-      // Draw corner squares (typical in QR codes)
-      // Top-left corner
-      ctx.fillRect(15, 15, 30, 30);
-      ctx.fillStyle = 'white';
-      ctx.fillRect(25, 25, 10, 10);
-      ctx.fillStyle = 'black';
-      
-      // Top-right corner
-      ctx.fillRect(canvas.width - 45, 15, 30, 30);
-      ctx.fillStyle = 'white';
-      ctx.fillRect(canvas.width - 35, 25, 10, 10);
-      ctx.fillStyle = 'black';
-      
-      // Bottom-left corner
-      ctx.fillRect(15, canvas.height - 45, 30, 30);
-      ctx.fillStyle = 'white';
-      ctx.fillRect(25, canvas.height - 35, 10, 10);
-      ctx.fillStyle = 'black';
-      
-      // Draw some random squares to simulate QR code data
-      const squareSize = 8;
-      const startX = 55;
-      const startY = 55;
-      const endX = canvas.width - 55;
-      const endY = canvas.height - 55;
-      
-      // Generate a more unique seed combining receipt ID and vehicle number
-      const seed = (entry.receiptId ? entry.receiptId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0) + 
-                  (entry.vehicleNumber ? entry.vehicleNumber.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0);
-      
-      // Create a consistent pattern based on the seed
-      for (let x = startX; x < endX; x += squareSize) {
-        for (let y = startY; y < endY; y += squareSize) {
-          // More complex pattern generation for better visual appearance
-          const hash = (x * 31) ^ (y * 17) + seed;
-          if (hash % 5 < 2) {
-            ctx.fillRect(x, y, squareSize, squareSize);
-          }
-        }
-      }
-    };
-    
-    generateQRCodePattern();
-    
-    // Add receipt ID text at the bottom
-    ctx.font = '10px Arial';
-    ctx.fillStyle = 'black';
-    ctx.textAlign = 'center';
-    if (entry.receiptId) {
-      ctx.fillText(entry.receiptId, canvas.width / 2, canvas.height - 10);
-    }
-    
-  }, [entry.receiptId, entry.vehicleNumber]);
 
   // Create a safe function for displaying the current date
   const getCurrentDate = () => {
@@ -255,11 +183,13 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
         
         <div className="flex justify-center my-4">
           <div className="border-2 border-gray-300 p-4 rounded bg-white">
-            <canvas 
-              ref={qrCanvasRef} 
-              width="150" 
-              height="150" 
-              className="bg-white" 
+            {/* Replace canvas with QRCode component */}
+            <QRCode
+              value={qrValue || "placeholder"}
+              size={150}
+              style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+              viewBox={`0 0 256 256`}
+              level="H"
             />
             <p className="text-center text-xs mt-2 text-gray-500">
               Scan for verification
