@@ -9,7 +9,7 @@ type ParkingContextType = {
   addVehicleType: (name: string) => Promise<void>;
   updateVehicleRates: (vehicleId: string, rates: HourlyRate[]) => Promise<void>;
   deleteVehicleType: (id: string) => Promise<void>;
-  addParkingEntry: (vehicleNumber: string, vehicleType: string) => Promise<ParkingEntry>;
+  addParkingEntry: (vehicleNumber: string, vehicleType: string, isPickAndGo?: boolean) => Promise<ParkingEntry>;
   exitVehicle: (entryId: string) => Promise<ParkingEntry | null>;
   findParkingEntry: (vehicleNumber: string) => Promise<ParkingEntry | null>;
   findParkingEntryByReceiptId: (receiptId: string) => Promise<ParkingEntry | null>;
@@ -102,7 +102,7 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
     }
   };
 
-  const addParkingEntry = async (vehicleNumber: string, vehicleTypeId: string): Promise<ParkingEntry> => {
+  const addParkingEntry = async (vehicleNumber: string, vehicleTypeId: string, isPickAndGo: boolean = false): Promise<ParkingEntry> => {
     try {
       const receiptId = `PK-${Math.floor(100000 + Math.random() * 900000)}`;
       
@@ -112,7 +112,8 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         body: JSON.stringify({
           vehicleNumber,
           vehicleTypeId,
-          receiptId
+          receiptId,
+          isPickAndGo
         })
       });
 
@@ -174,12 +175,22 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
     const entryTime = new Date(entry.entryTime);
     const exitTime = new Date(entry.exitTime);
     
-    // Calculate duration in hours - minimum 1 hour even if just a few seconds
+    // Calculate duration in milliseconds
     const durationMs = exitTime.getTime() - entryTime.getTime();
-    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
     
     console.log(`Calculating charges: Entry time ${entryTime}, Exit time ${exitTime}`);
-    console.log(`Duration: ${durationMs / (1000 * 60 * 60)} hours, rounded to ${durationHours} hours`);
+    console.log(`Duration: ${durationMs / (1000 * 60 * 60)} hours`);
+    
+    // For Pick&Go: check if duration is less than 15 minutes (900000 ms)
+    if (entry.isPickAndGo && durationMs <= 15 * 60 * 1000) {
+      console.log("Pick&Go entry with duration less than 15 minutes - no charge");
+      return 0;
+    }
+    
+    // Calculate duration in hours - minimum 1 hour even if just a few seconds
+    // If Pick&Go is enabled but exceeded 15 minutes, still charge normally
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+    console.log(`Duration rounded to ${durationHours} hours for billing purposes`);
     
     // Log the entry object for debugging
     console.log('Entry object:', JSON.stringify(entry, null, 2));

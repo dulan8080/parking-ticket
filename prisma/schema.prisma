@@ -41,6 +41,7 @@ model ParkingEntry {
   receiptId     String      @unique
   totalAmount   Int?
   duration      Int?
+  isPickAndGo   Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

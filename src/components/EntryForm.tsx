@@ -12,6 +12,7 @@ const EntryForm = () => {
   const { vehicleTypes, addParkingEntry, findParkingEntry } = useParkingContext();
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [selectedVehicleType, setSelectedVehicleType] = useState("");
+  const [isPickAndGo, setIsPickAndGo] = useState(false);
   const [error, setError] = useState("");
   const [errorDetails, setErrorDetails] = useState<{receiptId?: string, entryTime?: string} | null>(null);
   const [createdEntry, setCreatedEntry] = useState<ParkingEntry | null>(null);
@@ -49,7 +50,8 @@ const EntryForm = () => {
         return;
       }
 
-      const entry = await addParkingEntry(vehicleNumber, selectedVehicleType);
+      // Pass the isPickAndGo flag to addParkingEntry
+      const entry = await addParkingEntry(vehicleNumber, selectedVehicleType, isPickAndGo);
       console.log("Created entry:", entry); // Debug log
       setCreatedEntry(entry);
       setShowReceipt(true);
@@ -256,6 +258,59 @@ const EntryForm = () => {
           uppercase={true}
           required
         />
+        
+        {/* Pick&Go toggle switch */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-medium text-gray-800">Pick&Go Service</h3>
+              <p className="text-sm text-gray-500">First 15 minutes free of charge</p>
+            </div>
+            <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
+              <input
+                id="pick-and-go-switch"
+                type="checkbox"
+                className="opacity-0 w-0 h-0"
+                checked={isPickAndGo}
+                onChange={() => setIsPickAndGo(!isPickAndGo)}
+                aria-label="Enable Pick&Go service"
+              />
+              <label
+                htmlFor="pick-and-go-switch"
+                className={`absolute top-0 left-0 right-0 bottom-0 rounded-full cursor-pointer transition-colors duration-300 ease-in-out ${
+                  isPickAndGo ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setIsPickAndGo(!isPickAndGo);
+                  }
+                }}
+              >
+                <span 
+                  className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-md transform ${
+                    isPickAndGo ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </label>
+            </div>
+          </div>
+          
+          {isPickAndGo && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 mr-2 mt-0.5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>
+                  <strong>Important:</strong> You have selected Pick&Go service. You will have 15 minutes free of charge. 
+                  You cannot leave the vehicle at the parking premise. After 15 minutes, standard parking charges will apply.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
         
         <Button type="submit" className="w-full" disabled={isProcessing}>
           {isProcessing ? "Generating..." : "Generate Entry Ticket"}

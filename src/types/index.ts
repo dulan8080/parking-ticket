@@ -18,4 +18,5 @@ export type ParkingEntry = {
   totalAmount?: number;
   duration?: number; // in hours
   receiptId: string;
+  isPickAndGo?: boolean; // Flag for 15 minutes free parking
 }; 
