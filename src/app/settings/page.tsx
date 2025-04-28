@@ -197,6 +197,8 @@ export default function SettingsPage() {
   const getVehicleIcon = (vehicleType: any) => {
     // If the vehicle type has a custom icon URL, use it
     if (vehicleType.iconUrl) {
+      console.log(`Using icon URL for ${vehicleType.name}: ${vehicleType.iconUrl}`);
+      
       // Check if it's a data URI
       if (vehicleType.iconUrl.startsWith('data:')) {
         return (
@@ -210,7 +212,21 @@ export default function SettingsPage() {
         );
       }
       
-      // Otherwise use the Next.js Image component for static paths
+      // Check if it's one of our predefined icons
+      if (vehicleType.iconUrl.startsWith('/images/')) {
+        // For PNG files, use img tag directly
+        return (
+          <img 
+            src={vehicleType.iconUrl} 
+            alt={vehicleType.name} 
+            width={24} 
+            height={24} 
+            className="w-6 h-6 object-contain" 
+          />
+        );
+      }
+      
+      // Otherwise use the Next.js Image component for other paths
       return (
         <Image 
           src={vehicleType.iconUrl} 
@@ -218,12 +234,14 @@ export default function SettingsPage() {
           width={24} 
           height={24} 
           className="w-6 h-6 object-contain" 
+          unoptimized
         />
       );
     }
     
     // Otherwise, use the default icons based on name
     const name = vehicleType.name.toLowerCase();
+    console.log(`No iconUrl for ${vehicleType.name}, using default based on name match`);
     
     if (name.includes('car')) return vehicleIcons.car;
     if (name.includes('bike') || name.includes('motorcycle')) return vehicleIcons.bike;
@@ -232,6 +250,15 @@ export default function SettingsPage() {
     if (name.includes('van')) return vehicleIcons.van;
     if (name.includes('scooter')) return vehicleIcons.scooter;
     if (name.includes('bicycle') || name.includes('cycle')) return vehicleIcons.bicycle;
+    if (name.includes('weel') || name.includes('wheel') || name.includes('3')) return (
+      <img 
+        src="/images/weel.png" 
+        alt={vehicleType.name} 
+        width={24} 
+        height={24} 
+        className="w-6 h-6 object-contain" 
+      />
+    );
     
     return vehicleIcons.default;
   };

@@ -10,6 +10,7 @@ const PREDEFINED_ICONS = {
   'truck': '/images/truck.png',
   'van': '/images/van.png',
   'weel': '/images/weel.png',
+  '3wheel': '/images/weel.png', // Alternative name for three-wheeler
   'default': '/images/default-vehicle-icon.svg'
 };
 
@@ -22,17 +23,29 @@ const PREDEFINED_ICONS = {
  */
 export async function saveIcon(base64Data: string | null, vehicleId: string, vehicleName?: string): Promise<string> {
   try {
+    console.log(`Processing icon for vehicle: "${vehicleName}" (ID: ${vehicleId})`);
+    
     // Check if this is a predefined vehicle type (case insensitive)
     if (vehicleName) {
-      const lowerName = vehicleName.toLowerCase();
+      const lowerName = vehicleName.toLowerCase().trim();
       
-      // Check for matching predefined types
+      // Check for exact matches first
       for (const [type, path] of Object.entries(PREDEFINED_ICONS)) {
-        if (lowerName.includes(type)) {
-          console.log(`Using predefined icon for ${vehicleName}: ${path}`);
+        if (lowerName === type) {
+          console.log(`Found exact match for "${vehicleName}": ${path}`);
           return path;
         }
       }
+      
+      // Then check for partial matches
+      for (const [type, path] of Object.entries(PREDEFINED_ICONS)) {
+        if (lowerName.includes(type)) {
+          console.log(`Found partial match for "${vehicleName}" with "${type}": ${path}`);
+          return path;
+        }
+      }
+      
+      console.log(`No predefined icon match found for "${vehicleName}"`);
     }
     
     // If there's no base64 data or it's invalid, return a default icon

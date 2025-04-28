@@ -45,34 +45,13 @@ export async function createVehicleType(name: string, iconData?: string): Promis
     }
     
     // Create the vehicle type with the icon URL
-    console.log(`DB Service: Creating vehicle type in database`);
+    console.log(`DB Service: Creating vehicle type in database with iconUrl: ${iconUrl}`);
     const vehicleType = await prisma.vehicleType.create({
       data: { 
         name,
         iconUrl
       }
     });
-    
-    // If we saved an icon with a temporary ID, update the filename to use the actual ID
-    if (iconUrl && iconData) {
-      // Extract the filename from the path
-      const filename = iconUrl.split('/').pop();
-      if (filename) {
-        // Replace the temp ID with the actual ID
-        const newFilename = filename.replace(/^temp-[^-]+-/, `${vehicleType.id}-`);
-        const newIconUrl = `/images/vehicle-icons/${newFilename}`;
-        
-        console.log(`DB Service: Updating icon URL from ${iconUrl} to ${newIconUrl}`);
-        // Update the vehicle type with the new icon URL
-        await prisma.vehicleType.update({
-          where: { id: vehicleType.id },
-          data: { iconUrl: newIconUrl }
-        });
-        
-        // Update the return value
-        vehicleType.iconUrl = newIconUrl;
-      }
-    }
     
     console.log(`DB Service: Vehicle type created successfully:`, JSON.stringify(vehicleType));
     return vehicleType;
