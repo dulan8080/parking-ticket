@@ -19,18 +19,28 @@ export default function HistoryPage() {
   const [selectedEntry, setSelectedEntry] = useState<ParkingEntry | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessingExit, setIsProcessingExit] = useState(false);
+  const [pickAndGoFilter, setPickAndGoFilter] = useState<"all" | "yes" | "no">("all");
   
-  // Filter entries based on search term
-  const filteredEntries = searchTerm
-    ? parkingEntries.filter(
-        (entry) =>
-          entry.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  // Filter entries based on search term and Pick&Go status
+  const filteredEntries = parkingEntries
+    .filter(entry => {
+      // Filter by search term
+      const matchesSearch = searchTerm
+        ? entry.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (typeof entry.vehicleType === "object"
             ? entry.vehicleType.name.toLowerCase().includes(searchTerm.toLowerCase())
             : entry.vehicleType.toLowerCase().includes(searchTerm.toLowerCase())) ||
           entry.receiptId.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : parkingEntries;
+        : true;
+      
+      // Filter by Pick&Go status
+      const matchesPickAndGo = 
+        pickAndGoFilter === "all" ? true :
+        pickAndGoFilter === "yes" ? entry.isPickAndGo === true :
+        entry.isPickAndGo === false;
+      
+      return matchesSearch && matchesPickAndGo;
+    });
   
   // Sort entries
   const sortedEntries = [...filteredEntries].sort((a, b) => {
@@ -189,12 +199,45 @@ export default function HistoryPage() {
         </Button>
       </div>
       
-      <div className="mb-4">
-        <Input
-          placeholder="Search by vehicle number, type or receipt ID"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="mb-4 flex flex-col md:flex-row gap-4">
+        <div className="flex-grow">
+          <Input
+            placeholder="Search by vehicle number, type or receipt ID"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-64">
+          <div className="flex items-center space-x-4">
+            <label className="text-sm font-medium text-gray-700">Pick&Go:</label>
+            <div className="flex rounded-md shadow-sm">
+              <button
+                className={`px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-l-md ${
+                  pickAndGoFilter === "all" ? "bg-blue-50 text-blue-700 border-blue-500" : "bg-white hover:bg-gray-50"
+                }`}
+                onClick={() => setPickAndGoFilter("all")}
+              >
+                All
+              </button>
+              <button
+                className={`px-4 py-2 text-sm font-medium text-gray-700 border-t border-b border-gray-300 ${
+                  pickAndGoFilter === "yes" ? "bg-blue-50 text-blue-700 border-blue-500" : "bg-white hover:bg-gray-50"
+                }`}
+                onClick={() => setPickAndGoFilter("yes")}
+              >
+                Yes
+              </button>
+              <button
+                className={`px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-r-md ${
+                  pickAndGoFilter === "no" ? "bg-blue-50 text-blue-700 border-blue-500" : "bg-white hover:bg-gray-50"
+                }`}
+                onClick={() => setPickAndGoFilter("no")}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       
       <Card>
@@ -265,6 +308,9 @@ export default function HistoryPage() {
                   Receipt ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Pick&Go
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -310,6 +356,17 @@ export default function HistoryPage() {
                       <div className="text-sm text-gray-900 font-mono">
                         {entry.receiptId}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          entry.isPickAndGo
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {entry.isPickAndGo ? "Yes" : "No"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -363,7 +420,7 @@ export default function HistoryPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={10} className="px-6 py-4 text-center text-sm text-gray-500">
                     No parking entries found
                   </td>
                 </tr>
