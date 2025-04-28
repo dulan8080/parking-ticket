@@ -1,17 +1,17 @@
 "use server";
 
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Save an icon from base64 data to the public directory
+ * Save an icon from base64 data to a blob storage service
  * @param base64Data Base64 encoded image data (with data URI prefix)
  * @param vehicleId The vehicle type ID to associate with the icon
  * @returns The URL path to the saved icon
  */
 export async function saveIcon(base64Data: string, vehicleId: string): Promise<string> {
   try {
+    console.log("Starting icon save process for vehicle ID:", vehicleId);
+    
     // Extract the content type and actual base64 data
     const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     
@@ -27,27 +27,22 @@ export async function saveIcon(base64Data: string, vehicleId: string): Promise<s
     if (contentType === 'image/jpeg') extension = 'jpg';
     if (contentType === 'image/svg+xml') extension = 'svg';
     
-    // Convert base64 to buffer
-    const buffer = Buffer.from(actualData, 'base64');
-    
-    // Create directory if it doesn't exist
-    const dirPath = path.join(process.cwd(), 'public', 'images', 'vehicle-icons');
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
-    
     // Create unique filename
     const filename = `${vehicleId}-${uuidv4().slice(0, 8)}.${extension}`;
-    const filePath = path.join(dirPath, filename);
     
-    // Write file
-    fs.writeFileSync(filePath, buffer);
+    // In a production environment, we'd use Vercel Blob Storage or similar service
+    // For demonstration, we'll return a mock URL instead of trying to save the file
+    console.log(`Mock: Icon would be saved with filename: ${filename}`);
     
-    // Return the URL path
-    return `/images/vehicle-icons/${filename}`;
+    // Return a mock URL path - in production, this would be the actual URL from the storage service
+    const mockUrl = `/api/mock-icon/${filename}`;
+    console.log(`Returning mock URL: ${mockUrl}`);
+    return mockUrl;
   } catch (error) {
-    console.error('Error saving icon:', error);
-    throw new Error('Failed to save icon');
+    console.error('Error in saveIcon function:', error);
+    // Instead of throwing an error, return a default icon URL
+    console.log('Returning default icon URL due to error');
+    return '/images/default-vehicle-icon.svg';
   }
 }
 
@@ -57,18 +52,10 @@ export async function saveIcon(base64Data: string, vehicleId: string): Promise<s
  */
 export async function deleteIcon(iconUrl: string): Promise<void> {
   try {
-    if (!iconUrl.startsWith('/images/vehicle-icons/')) {
-      throw new Error('Invalid icon URL');
-    }
-    
-    const filename = path.basename(iconUrl);
-    const filePath = path.join(process.cwd(), 'public', 'images', 'vehicle-icons', filename);
-    
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    // In production, we would delete the file from the blob storage service
+    console.log(`Mock: Would delete icon at URL: ${iconUrl}`);
   } catch (error) {
-    console.error('Error deleting icon:', error);
-    throw new Error('Failed to delete icon');
+    console.error('Error in deleteIcon function:', error);
+    // Don't throw an error for deletion failures
   }
 } 

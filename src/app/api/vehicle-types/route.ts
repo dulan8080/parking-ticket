@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { name, iconData } = data;
     console.log(`API: Creating vehicle type with name: ${name}`);
+    console.log(`API: Has icon data: ${!!iconData}`);
 
     if (!name) {
       console.log("API: Vehicle type name is required");
@@ -30,13 +31,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const vehicleType = await dbService.createVehicleType(name, iconData);
-    console.log("API: Vehicle type created successfully:", JSON.stringify(vehicleType));
-    return NextResponse.json(vehicleType, { status: 201 });
+    try {
+      const vehicleType = await dbService.createVehicleType(name, iconData);
+      console.log("API: Vehicle type created successfully:", JSON.stringify(vehicleType));
+      return NextResponse.json(vehicleType, { status: 201 });
+    } catch (dbError) {
+      console.error("API: Database error creating vehicle type:", dbError);
+      return NextResponse.json(
+        { error: "Failed to create vehicle type in database", details: dbError.message },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error("Error creating vehicle type:", error);
+    console.error("API: Error parsing request or unexpected error:", error);
     return NextResponse.json(
-      { error: "Failed to create vehicle type" },
+      { error: "Failed to create vehicle type", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
