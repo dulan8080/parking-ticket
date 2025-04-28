@@ -6,7 +6,7 @@ import { HourlyRate, ParkingEntry, VehicleType } from "../types";
 type ParkingContextType = {
   vehicleTypes: VehicleType[];
   parkingEntries: ParkingEntry[];
-  addVehicleType: (name: string) => Promise<void>;
+  addVehicleType: (name: string, iconData?: string | null) => Promise<void>;
   updateVehicleRates: (vehicleId: string, rates: HourlyRate[]) => Promise<void>;
   updateVehicleType: (vehicleId: string, name: string) => Promise<void>;
   deleteVehicleType: (id: string) => Promise<void>;
@@ -48,12 +48,12 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
     loadInitialData();
   }, []);
 
-  const addVehicleType = async (name: string) => {
+  const addVehicleType = async (name: string, iconData?: string | null) => {
     try {
       const response = await fetch('/api/vehicle-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, iconData })
       });
 
       if (response.ok) {

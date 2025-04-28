@@ -3,6 +3,7 @@
 import prisma from "../lib/prisma";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { HourlyRate, ParkingEntry, VehicleType } from "@prisma/client";
+import { saveIcon } from "../lib/iconUtils";
 
 // VehicleType Services
 export async function getAllVehicleTypes(): Promise<VehicleType[]> {
@@ -18,10 +19,45 @@ export async function getVehicleTypeById(id: string): Promise<VehicleType | null
   });
 }
 
-export async function createVehicleType(name: string): Promise<VehicleType> {
-  return await prisma.vehicleType.create({
-    data: { name }
+export async function createVehicleType(name: string, iconData?: string): Promise<VehicleType> {
+  let iconUrl = null;
+  
+  // If icon data is provided, save it
+  if (iconData) {
+    // Generate a temporary ID since we don't have the actual ID yet
+    const tempId = 'temp-' + Date.now();
+    iconUrl = await saveIcon(iconData, tempId);
+  }
+  
+  // Create the vehicle type with the icon URL
+  const vehicleType = await prisma.vehicleType.create({
+    data: { 
+      name,
+      iconUrl
+    }
   });
+  
+  // If we saved an icon with a temporary ID, update the filename to use the actual ID
+  if (iconUrl && iconData) {
+    // Extract the filename from the path
+    const filename = iconUrl.split('/').pop();
+    if (filename) {
+      // Replace the temp ID with the actual ID
+      const newFilename = filename.replace(/^temp-[^-]+-/, `${vehicleType.id}-`);
+      const newIconUrl = `/images/vehicle-icons/${newFilename}`;
+      
+      // Update the vehicle type with the new icon URL
+      await prisma.vehicleType.update({
+        where: { id: vehicleType.id },
+        data: { iconUrl: newIconUrl }
+      });
+      
+      // Update the return value
+      vehicleType.iconUrl = newIconUrl;
+    }
+  }
+  
+  return vehicleType;
 }
 
 export async function updateVehicleRates(id: string, rates: { hour: number; price: number }[]): Promise<VehicleType> {

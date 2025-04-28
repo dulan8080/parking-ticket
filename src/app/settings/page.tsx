@@ -139,9 +139,13 @@ export default function SettingsPage() {
   // Add new vehicle type
   const handleAddVehicle = () => {
     if (newVehicleName.trim()) {
-      // For now we'll just add the vehicle type with the name
-      // In a real app, you'd store the icon info in the database
-      addVehicleType(newVehicleName);
+      // Pass the custom icon if the selected icon type is "custom"
+      const iconToSave = selectedIconType === "custom" ? customIcon : null;
+      
+      // Add the vehicle type with the name and the custom icon
+      addVehicleType(newVehicleName, iconToSave);
+      
+      // Reset the form fields
       setNewVehicleName("");
       setCustomIcon(null);
       setSelectedIconType("car");
@@ -164,8 +168,22 @@ export default function SettingsPage() {
   };
 
   // Get icon for vehicle type
-  const getVehicleIcon = (typeName: string) => {
-    const name = typeName.toLowerCase();
+  const getVehicleIcon = (vehicleType: any) => {
+    // If the vehicle type has a custom icon URL, use it
+    if (vehicleType.iconUrl) {
+      return (
+        <Image 
+          src={vehicleType.iconUrl} 
+          alt={vehicleType.name} 
+          width={24} 
+          height={24} 
+          className="w-6 h-6 object-contain" 
+        />
+      );
+    }
+    
+    // Otherwise, use the default icons based on name
+    const name = vehicleType.name.toLowerCase();
     
     if (name.includes('car')) return vehicleIcons.car;
     if (name.includes('bike') || name.includes('motorcycle')) return vehicleIcons.bike;
@@ -373,7 +391,7 @@ export default function SettingsPage() {
                 className="border rounded-lg p-3 flex flex-col items-center"
               >
                 <div className="w-12 h-12 flex items-center justify-center mb-2 text-gray-700">
-                  {getVehicleIcon(vt.name)}
+                  {getVehicleIcon(vt)}
                 </div>
                 
                 {editingVehicleId === vt.id ? (

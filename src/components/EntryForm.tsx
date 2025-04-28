@@ -7,6 +7,7 @@ import Input from "./ui/Input";
 import Card from "./ui/Card";
 import Receipt from "./Receipt";
 import { ParkingEntry } from "../types";
+import Image from "next/image";
 
 const EntryForm = () => {
   const { vehicleTypes, addParkingEntry, findParkingEntry } = useParkingContext();
@@ -85,8 +86,22 @@ const EntryForm = () => {
   };
 
   // Function to get appropriate icon for vehicle type
-  const getVehicleIcon = (typeName: string) => {
-    const name = typeName.toLowerCase();
+  const getVehicleIcon = (vehicleType: any) => {
+    // If the vehicle type has a custom icon URL, use it
+    if (vehicleType.iconUrl) {
+      return (
+        <Image 
+          src={vehicleType.iconUrl} 
+          alt={vehicleType.name} 
+          width={36} 
+          height={36} 
+          className="w-9 h-9 object-contain" 
+        />
+      );
+    }
+    
+    // Otherwise, use the default icons based on name
+    const name = vehicleType.name.toLowerCase();
     
     if (name.includes('car')) {
       return (
@@ -243,7 +258,7 @@ const EntryForm = () => {
                 aria-label={`Select ${vt.name}`}
               >
                 <div className="w-16 h-16 flex items-center justify-center mb-2">
-                  {getVehicleIcon(vt.name)}
+                  {getVehicleIcon(vt)}
                 </div>
                 <span className="text-sm font-medium">{vt.name}</span>
               </button>

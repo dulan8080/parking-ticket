@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { name } = data;
+    const { name, iconData } = data;
 
     if (!name) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const vehicleType = await dbService.createVehicleType(name);
+    const vehicleType = await dbService.createVehicleType(name, iconData);
     return NextResponse.json(vehicleType, { status: 201 });
   } catch (error) {
     console.error("Error creating vehicle type:", error);
