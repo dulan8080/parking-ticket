@@ -1,129 +1,108 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
-import Button from './Button';
+import { useRef, useState } from "react";
+import Image from "next/image";
 
 interface IconUploaderProps {
-  initialIconUrl?: string | null;
-  onIconChange: (iconData: string | null) => void;
-  vehicleType: string;
+  onIconChange: (iconBase64: string | null) => void;
+  initialIcon?: string | null;
+  size?: "sm" | "md" | "lg";
 }
 
-const IconUploader = ({ initialIconUrl, onIconChange, vehicleType }: IconUploaderProps) => {
-  const [preview, setPreview] = useState<string | null>(initialIconUrl || null);
-  const [isUploading, setIsUploading] = useState(false);
+const IconUploader = ({ onIconChange, initialIcon, size = "md" }: IconUploaderProps) => {
+  const [iconPreview, setIconPreview] = useState<string | null>(initialIcon || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (initialIconUrl) {
-      setPreview(initialIconUrl);
+  // Size mappings
+  const sizeClasses = {
+    sm: {
+      container: "w-16 h-16",
+      icon: "w-8 h-8"
+    },
+    md: {
+      container: "w-24 h-24",
+      icon: "w-12 h-12"
+    },
+    lg: {
+      container: "w-32 h-32",
+      icon: "w-16 h-16"
     }
-  }, [initialIconUrl]);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPEG, SVG)');
-      return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const base64 = event.target.result as string;
+          setIconPreview(base64);
+          onIconChange(base64);
+        }
+      };
+      reader.readAsDataURL(file);
     }
-
-    // Check file size (max 1MB)
-    if (file.size > 1024 * 1024) {
-      alert('Image size must be less than 1MB');
-      return;
-    }
-
-    setIsUploading(true);
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        const iconData = event.target.result as string;
-        setPreview(iconData);
-        onIconChange(iconData);
-        setIsUploading(false);
-      }
-    };
-    reader.onerror = () => {
-      alert('Error reading file');
-      setIsUploading(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
   };
 
   const handleRemoveIcon = () => {
-    setPreview(null);
+    setIconPreview(null);
     onIconChange(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div className="flex flex-col items-center space-y-3">
-      <div 
-        className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden bg-gray-50"
-      >
-        {preview ? (
-          <Image 
-            src={preview} 
-            alt={`${vehicleType} icon`} 
-            width={80} 
-            height={80} 
-            className="object-contain" 
-          />
+    <div className="flex flex-col items-center gap-2">
+      <div className={`${sizeClasses[size].container} relative flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer`} onClick={triggerFileInput}>
+        {iconPreview ? (
+          // Use standard img tag for base64 data
+          iconPreview.startsWith('data:') ? (
+            <img
+              src={iconPreview}
+              alt="Vehicle Icon"
+              className={`${sizeClasses[size].icon} object-contain`}
+            />
+          ) : (
+            // Use Next.js Image for URLs
+            <Image
+              src={iconPreview}
+              alt="Vehicle Icon"
+              width={sizeClasses[size].icon === "w-8 h-8" ? 32 : sizeClasses[size].icon === "w-12 h-12" ? 48 : 64}
+              height={sizeClasses[size].icon === "w-8 h-8" ? 32 : sizeClasses[size].icon === "w-12 h-12" ? 48 : 64}
+              className={`${sizeClasses[size].icon} object-contain`}
+            />
+          )
         ) : (
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="40" 
-            height="40" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className="text-gray-400"
-          >
-            <rect width="18" height="18" x="3" y="3" rx="2" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${sizeClasses[size].icon} text-gray-400`}>
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
             <circle cx="9" cy="9" r="2" />
             <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
           </svg>
         )}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          accept="image/*" 
+          className="hidden"
+          aria-label="Upload vehicle icon"
+        />
       </div>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/png,image/jpeg,image/svg+xml"
-        className="hidden"
-      />
-      <div className="flex space-x-2">
-        <Button 
-          size="sm" 
-          onClick={handleUploadClick}
-          disabled={isUploading}
+      
+      {iconPreview && (
+        <button 
+          type="button" 
+          onClick={handleRemoveIcon} 
+          className="text-xs text-red-600 hover:text-red-800"
         >
-          {isUploading ? 'Uploading...' : 'Upload Icon'}
-        </Button>
-        {preview && (
-          <Button 
-            size="sm" 
-            variant="destructive" 
-            onClick={handleRemoveIcon}
-          >
-            Remove
-          </Button>
-        )}
-      </div>
+          Remove Icon
+        </button>
+      )}
     </div>
   );
 };

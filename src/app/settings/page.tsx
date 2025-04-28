@@ -191,6 +191,20 @@ export default function SettingsPage() {
   const getVehicleIcon = (vehicleType: any) => {
     // If the vehicle type has a custom icon URL, use it
     if (vehicleType.iconUrl) {
+      // Check if it's a data URI
+      if (vehicleType.iconUrl.startsWith('data:')) {
+        return (
+          <img 
+            src={vehicleType.iconUrl} 
+            alt={vehicleType.name} 
+            width={24} 
+            height={24} 
+            className="w-6 h-6 object-contain" 
+          />
+        );
+      }
+      
+      // Otherwise use the Next.js Image component for static paths
       return (
         <Image 
           src={vehicleType.iconUrl} 

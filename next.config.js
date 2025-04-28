@@ -12,12 +12,22 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'parking-ticket-iota.vercel.app'],
+    },
+  },
   images: {
+    domains: ['parking-ticket-iota.vercel.app', 'localhost'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      }
     ],
   },
 }

@@ -14,7 +14,7 @@ datasource db {
 model VehicleType {
   id           String       @id @default(uuid())
   name         String
-  iconUrl      String?
+  iconUrl      String?      @db.Text  // Using Text type to store larger strings like base64 data
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   rates        HourlyRate[]
