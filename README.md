@@ -20,62 +20,56 @@ A mobile-responsive web application for managing parking tickets, entrances, exi
 - React-QR-Code for QR code generation
 - React-to-Print for printing receipts
 
-## Deployment on Vercel
+## Deploying to Vercel
 
-This project is set up to be deployed on Vercel. To deploy properly, follow these steps:
+### Database Setup
 
-1. Push the code to a GitHub repository
-2. Connect the repository to Vercel
-3. Add the following environment variables in the Vercel dashboard:
-   - `DATABASE_URL`: The URL for your database. For production, use a PostgreSQL database like Vercel Postgres.
+1. Create a PostgreSQL database (you can use Vercel Postgres, Neon, Supabase, or any other PostgreSQL provider)
 
-### Important Notes
+2. Add the following environment variables to your Vercel project:
+   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `DIRECT_URL`: Same as your `DATABASE_URL` if not using connection pooling
 
-- The build script includes `prisma generate` to ensure the Prisma client is properly generated during deployment.
-- Make sure the database schema is deployed to your production database before deploying the application.
+### Deployment
+
+1. Connect your GitHub repository to Vercel
+
+2. Vercel will automatically run the build command defined in `package.json`, which includes:
+   ```
+   prisma generate && prisma migrate deploy && next build
+   ```
+
+3. The migration will be applied during the build process
+
+### Manually Applying Migrations
+
+If you need to manually apply migrations to your production database:
+
+1. Pull the environment variables from Vercel:
+   ```
+   vercel env pull .env.production.local
+   ```
+
+2. Run the migration command:
+   ```
+   npx prisma migrate deploy
+   ```
+
+### Database Schema Changes
+
+After making changes to your Prisma schema:
+
+1. Create a new migration locally:
+   ```
+   npx prisma migrate dev --name [migration_name]
+   ```
+
+2. Commit the generated migration files to your repository
+
+3. Deploy to Vercel - the migration will be applied automatically during build
 
 ## Development
 
 To run the project locally:
 
-```bash
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Set up your database (initial migration)
-npm run prisma:migrate
-
-# Run the development server
-npm run dev
 ```
-
-## Production
-
-For production builds:
-
-```bash
-# Build the application
-npm run build
-
-# Start the production server
-npm start
-```
-
-## User Guide
-
-### Initial Setup
-1. Navigate to the Settings page
-2. Add vehicle types
-3. Configure hourly rates for each vehicle type
-
-### Using the System
-1. On the main page, select "Vehicle Entry" or "Vehicle Exit"
-2. For entry, select vehicle type, enter number plate, and print ticket
-3. For exit, enter the vehicle number to find the record and calculate charges
-
-## License
-
-MIT
