@@ -47,6 +47,14 @@ export async function updateVehicleRates(id: string, rates: { hour: number; pric
   });
 }
 
+export async function updateVehicleType(id: string, name: string): Promise<VehicleType> {
+  return await prisma.vehicleType.update({
+    where: { id },
+    data: { name },
+    include: { rates: true }
+  });
+}
+
 export async function deleteVehicleType(id: string): Promise<VehicleType> {
   return await prisma.vehicleType.delete({
     where: { id }

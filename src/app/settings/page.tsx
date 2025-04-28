@@ -90,7 +90,7 @@ const vehicleIcons = {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { vehicleTypes, addVehicleType, updateVehicleRates, deleteVehicleType } = useParkingContext();
+  const { vehicleTypes, addVehicleType, updateVehicleRates, updateVehicleType, deleteVehicleType } = useParkingContext();
   const [newVehicleName, setNewVehicleName] = useState("");
   const [selectedIconType, setSelectedIconType] = useState("car");
   const [customIcon, setCustomIcon] = useState<string | null>(null);
@@ -99,6 +99,8 @@ export default function SettingsPage() {
   );
   const [rates, setRates] = useState<HourlyRate[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [editingVehicleName, setEditingVehicleName] = useState("");
 
   // Format currency in Sri Lankan Rupees
   const formatCurrency = (amount: number) => {
@@ -206,12 +208,42 @@ export default function SettingsPage() {
     }
   };
 
+  // Handle edit vehicle
+  const handleEditVehicle = (id: string, name: string) => {
+    setEditingVehicleId(id);
+    setEditingVehicleName(name);
+  };
+
+  // Handle save edited vehicle name
+  const handleSaveEditedVehicle = async () => {
+    if (editingVehicleId && editingVehicleName.trim()) {
+      try {
+        await updateVehicleType(editingVehicleId, editingVehicleName);
+        setEditingVehicleId(null);
+        setEditingVehicleName("");
+      } catch (error) {
+        console.error("Error updating vehicle type:", error);
+        alert(`Failed to update vehicle type: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingVehicleId(null);
+    setEditingVehicleName("");
+  };
+
   // Handle delete vehicle
   const handleDeleteVehicle = (id: string) => {
     if (confirm("Are you sure you want to delete this vehicle type?")) {
       deleteVehicleType(id);
       if (activeVehicleId === id) {
         setActiveVehicleId(vehicleTypes.length > 0 ? vehicleTypes[0].id : null);
+      }
+      if (editingVehicleId === id) {
+        setEditingVehicleId(null);
+        setEditingVehicleName("");
       }
     }
   };
@@ -343,13 +375,51 @@ export default function SettingsPage() {
                 <div className="w-12 h-12 flex items-center justify-center mb-2 text-gray-700">
                   {getVehicleIcon(vt.name)}
                 </div>
-                <span className="font-medium text-sm">{vt.name}</span>
-                <button
-                  onClick={() => handleDeleteVehicle(vt.id)}
-                  className="text-xs text-red-500 mt-1"
-                >
-                  Delete
-                </button>
+                
+                {editingVehicleId === vt.id ? (
+                  <div className="w-full">
+                    <Input
+                      value={editingVehicleName}
+                      onChange={(e) => setEditingVehicleName(e.target.value)}
+                      className="mb-2"
+                    />
+                    <div className="flex space-x-1 mt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={handleSaveEditedVehicle}
+                        className="text-xs flex-1 py-1"
+                      >
+                        Save
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="text-xs flex-1 py-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-medium text-sm">{vt.name}</span>
+                    <div className="flex space-x-2 mt-2">
+                      <button
+                        onClick={() => handleEditVehicle(vt.id, vt.name)}
+                        className="text-xs text-blue-500"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteVehicle(vt.id)}
+                        className="text-xs text-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

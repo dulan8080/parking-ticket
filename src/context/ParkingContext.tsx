@@ -8,6 +8,7 @@ type ParkingContextType = {
   parkingEntries: ParkingEntry[];
   addVehicleType: (name: string) => Promise<void>;
   updateVehicleRates: (vehicleId: string, rates: HourlyRate[]) => Promise<void>;
+  updateVehicleType: (vehicleId: string, name: string) => Promise<void>;
   deleteVehicleType: (id: string) => Promise<void>;
   addParkingEntry: (vehicleNumber: string, vehicleType: string, isPickAndGo?: boolean) => Promise<ParkingEntry>;
   exitVehicle: (entryId: string) => Promise<ParkingEntry | null>;
@@ -83,6 +84,30 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       }
     } catch (error) {
       console.error("Error updating rates:", error);
+      throw error;
+    }
+  };
+
+  const updateVehicleType = async (vehicleId: string, name: string) => {
+    try {
+      const response = await fetch(`/api/vehicle-types/${vehicleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+
+      if (response.ok) {
+        const updatedVehicleType = await response.json();
+        setVehicleTypes(
+          vehicleTypes.map((vt) => 
+            vt.id === vehicleId ? updatedVehicleType : vt
+          )
+        );
+      } else {
+        throw new Error('Failed to update vehicle type');
+      }
+    } catch (error) {
+      console.error("Error updating vehicle type:", error);
       throw error;
     }
   };
@@ -339,6 +364,7 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         parkingEntries,
         addVehicleType,
         updateVehicleRates,
+        updateVehicleType,
         deleteVehicleType,
         addParkingEntry,
         exitVehicle,

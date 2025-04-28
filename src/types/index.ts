@@ -2,6 +2,7 @@ export type VehicleType = {
   id: string;
   name: string;
   rates: HourlyRate[];
+  iconUrl?: string | null;
 };
 
 export type HourlyRate = {

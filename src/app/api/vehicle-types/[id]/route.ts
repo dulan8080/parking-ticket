@@ -32,6 +32,42 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const id = params.id;
+    const data = await request.json();
+    const { name } = data;
+
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return NextResponse.json(
+        { error: "Valid vehicle type name is required" },
+        { status: 400 }
+      );
+    }
+    
+    // Check if vehicle type exists
+    const vehicleType = await dbService.getVehicleTypeById(id);
+    if (!vehicleType) {
+      return NextResponse.json(
+        { error: "Vehicle type not found" },
+        { status: 404 }
+      );
+    }
+    
+    const updatedVehicleType = await dbService.updateVehicleType(id, name.trim());
+    return NextResponse.json(updatedVehicleType);
+  } catch (error) {
+    console.error("Error updating vehicle type:", error);
+    return NextResponse.json(
+      { error: "Failed to update vehicle type" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
