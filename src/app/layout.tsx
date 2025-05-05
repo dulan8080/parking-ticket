@@ -42,9 +42,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         
-        {/* Meta tags for camera permissions */}
-        <meta name="permissions-policy" content="camera=*, microphone=*" />
-        <meta http-equiv="Content-Security-Policy" content="camera 'self'" />
+        {/* Camera permissions meta tags */}
+        <meta name="permissions-policy" content="camera=self, microphone=self" />
+        {/* Allow media devices specifically for camera access */}
+        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; media-src 'self' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

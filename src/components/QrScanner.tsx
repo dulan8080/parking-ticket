@@ -12,42 +12,61 @@ interface QrScannerProps {
 const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
   const [error, setError] = useState<string>("");
   const [scanning, setScanning] = useState<boolean>(false);
-  const [permissionStatus, setPermissionStatus] = useState<string>("prompt"); // "prompt", "granted", "denied"
+  const [permissionStatus, setPermissionStatus] = useState<string>("prompt");
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>("");
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Initial setup
   useEffect(() => {
-    // Check camera permission on component mount
-    const checkCameraPermission = async () => {
+    const initialize = async () => {
       try {
-        // Check if camera permissions API is supported
-        if (navigator.permissions && navigator.permissions.query) {
-          const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
-          setPermissionStatus(result.state);
+        // Try to enumerate cameras to see if we have access
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          setError("Camera API not supported by your browser");
+          return;
+        }
+
+        // Check if camera access is already granted
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
           
-          // Listen for permission changes
-          result.onchange = () => {
-            setPermissionStatus(result.state);
+          if (videoDevices.length > 0) {
+            setCameras(videoDevices);
+            // Set default camera - prefer rear camera for mobile
+            const rearCamera = videoDevices.find(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('rear') ||
+              device.label.toLowerCase().includes('environment')
+            );
+            setSelectedCamera(rearCamera?.deviceId || videoDevices[0].deviceId);
             
-            // If permission is granted after a change, try to start the scanner
-            if (result.state === 'granted' && !scanning) {
-              initScanner();
+            // If we can see camera labels, permission is already granted
+            if (videoDevices[0].label) {
+              setPermissionStatus('granted');
             }
-          };
+          } else {
+            setError("No cameras found on your device");
+          }
+        } catch (err) {
+          console.log("Permission check failed:", err);
         }
       } catch (err) {
-        console.log("Permission query not supported, will try direct access");
+        console.error("Error during initialization:", err);
+        setError("Failed to initialize camera. Please try again.");
       }
     };
-    
-    checkCameraPermission();
+
+    initialize();
     
     return () => {
-      // Cleanup scanner when component unmounts
       cleanupScanner();
     };
   }, []);
-  
+
+  // Cleanup function for the scanner
   const cleanupScanner = async () => {
     if (scannerRef.current) {
       if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
@@ -61,10 +80,11 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
     }
   };
 
+  // Initialize the scanner
   const initScanner = () => {
     try {
       if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode("qr-reader");
+        scannerRef.current = new Html5Qrcode("qr-reader", { verbose: false });
         console.log("QR scanner initialized successfully");
       }
       return true;
@@ -75,31 +95,68 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
     }
   };
 
+  // Request camera permission directly
   const requestCameraPermission = async () => {
     try {
-      // Explicitly request camera access - this will prompt the user
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setError("");
+      
+      // Force a direct camera access which will trigger the permission prompt
+      const constraints = {
+        video: {
+          facingMode: "environment", // Prefer rear camera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       // If we get here, permission was granted
       setPermissionStatus('granted');
       
+      // Get the list of cameras after permission is granted
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setCameras(videoDevices);
+      
+      // Set default camera (prefer rear camera on mobile)
+      const rearCamera = videoDevices.find(device => 
+        device.label.toLowerCase().includes('back') || 
+        device.label.toLowerCase().includes('rear') ||
+        device.label.toLowerCase().includes('environment')
+      );
+      setSelectedCamera(rearCamera?.deviceId || videoDevices[0].deviceId);
+      
       // Stop the stream since we only needed it to request permission
       stream.getTracks().forEach(track => track.stop());
       
-      // Now start the scanner
-      startScanner();
+      // Wait a moment for the browser to update permissions
+      setTimeout(() => {
+        startScanner();
+      }, 500);
     } catch (err) {
-      console.error("Camera permission denied:", err);
+      console.error("Camera access error:", err);
       setPermissionStatus('denied');
-      setError("Camera access was denied. Please enable camera access in your browser settings and try again.");
+      
+      // Provide specific error message based on the error
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          setError("Camera access was denied. Please enable camera access in your browser settings.");
+        } else if (err.name === 'NotFoundError') {
+          setError("No camera found on your device.");
+        } else {
+          setError(`Camera error: ${err.message}`);
+        }
+      } else {
+        setError("Could not access camera. Please check your device settings.");
+      }
     }
   };
 
+  // Start the QR scanner
   const startScanner = async () => {
-    // Clean up any existing scanner
     await cleanupScanner();
     
-    // Initialize a new scanner
     if (!initScanner()) {
       return;
     }
@@ -118,13 +175,16 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
       
       setScanning(true);
       
+      // Use the selected camera if available, otherwise use environment facing mode
+      const cameraConfig = selectedCamera 
+        ? { deviceId: selectedCamera }
+        : { facingMode: "environment" };
+      
       await scannerRef.current!.start(
-        { facingMode: "environment" },
+        cameraConfig,
         config,
         (decodedText) => {
           console.log("QR Code scanned, decoded text:", decodedText);
-          
-          // Accept any text as valid for now - we'll check in the callback
           onScanSuccess(decodedText);
           stopScanner();
         },
@@ -136,6 +196,8 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
     } catch (err: any) {
       setScanning(false);
       
+      console.error("QR Scanner error:", err);
+      
       // Provide more specific error messages based on the error
       if (err.toString().includes('Permission denied') || err.toString().includes('NotAllowedError')) {
         setError("Camera access denied. Please check your browser settings and enable camera access.");
@@ -144,12 +206,12 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
       } else if (err.toString().includes('NotReadableError')) {
         setError("Camera is in use by another application or not available.");
       } else {
-        console.error("QR Scanner error:", err);
-        setError("Could not start camera. Please check camera permissions and try again.");
+        setError("Could not start camera. Please try again or restart your browser.");
       }
     }
   };
 
+  // Stop the scanner
   const stopScanner = async () => {
     if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
       try {
@@ -164,17 +226,15 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
     }
   };
 
-  const renderPermissionButton = () => {
-    if (permissionStatus === 'granted') {
-      return (
-        <Button onClick={startScanner}>Start Scanning</Button>
-      );
-    } else {
-      return (
-        <Button onClick={requestCameraPermission}>
-          Allow Camera Access
-        </Button>
-      );
+  // Switch camera if multiple cameras are available
+  const handleCameraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCameraId = e.target.value;
+    setSelectedCamera(newCameraId);
+    
+    if (scanning) {
+      stopScanner().then(() => {
+        startScanner();
+      });
     }
   };
 
@@ -193,18 +253,38 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
         </div>
       )}
       
+      {cameras.length > 1 && permissionStatus === 'granted' && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Camera
+          </label>
+          <select 
+            value={selectedCamera}
+            onChange={handleCameraChange}
+            className="w-full p-2 border border-gray-300 rounded-md bg-white"
+            disabled={scanning}
+          >
+            {cameras.map((camera) => (
+              <option key={camera.deviceId} value={camera.deviceId}>
+                {camera.label || `Camera ${cameras.indexOf(camera) + 1}`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      
       <div 
         id="qr-reader" 
         ref={containerRef}
         className="w-full max-w-sm mx-auto overflow-hidden rounded-md"
-        style={{ height: scanning ? "300px" : "auto" }}
+        style={{ height: scanning ? "300px" : "200px" }}
       >
         {!scanning && (
-          <div className="flex justify-center items-center h-40 bg-gray-100 rounded-md">
-            <p className="text-gray-500">
+          <div className="flex justify-center items-center h-full bg-gray-100 rounded-md">
+            <p className="text-gray-500 text-center px-4">
               {permissionStatus === 'granted' 
                 ? "Camera preview will appear here" 
-                : "Camera permission required"}
+                : "Camera permission required to scan QR codes"}
             </p>
           </div>
         )}
@@ -212,7 +292,13 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
       
       <div className="mt-4 flex justify-center gap-2">
         {!scanning ? (
-          renderPermissionButton()
+          permissionStatus === 'granted' ? (
+            <Button onClick={startScanner}>Start Scanning</Button>
+          ) : (
+            <Button onClick={requestCameraPermission}>
+              Allow Camera Access
+            </Button>
+          )
         ) : (
           <Button variant="secondary" onClick={stopScanner}>Stop Scanning</Button>
         )}
