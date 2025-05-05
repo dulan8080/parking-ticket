@@ -41,6 +41,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        
+        {/* Meta tags for camera permissions */}
+        <meta name="permissions-policy" content="camera=*, microphone=*" />
+        <meta http-equiv="Content-Security-Policy" content="camera 'self'" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

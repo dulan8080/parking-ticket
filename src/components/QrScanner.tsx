@@ -12,46 +12,99 @@ interface QrScannerProps {
 const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
   const [error, setError] = useState<string>("");
   const [scanning, setScanning] = useState<boolean>(false);
+  const [permissionStatus, setPermissionStatus] = useState<string>("prompt"); // "prompt", "granted", "denied"
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize scanner on component mount
-    if (!scannerRef.current) {
+    // Check camera permission on component mount
+    const checkCameraPermission = async () => {
       try {
-        scannerRef.current = new Html5Qrcode("qr-reader");
-      } catch (err) {
-        console.error("Failed to initialize QR scanner:", err);
-        setError("Failed to initialize scanner. Please try again.");
-      }
-    }
-
-    // Cleanup scanner when component unmounts
-    return () => {
-      if (scannerRef.current) {
-        if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
-          scannerRef.current
-            .stop()
-            .catch(error => console.error("Failed to stop scanner:", error));
+        // Check if camera permissions API is supported
+        if (navigator.permissions && navigator.permissions.query) {
+          const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          setPermissionStatus(result.state);
+          
+          // Listen for permission changes
+          result.onchange = () => {
+            setPermissionStatus(result.state);
+            
+            // If permission is granted after a change, try to start the scanner
+            if (result.state === 'granted' && !scanning) {
+              initScanner();
+            }
+          };
         }
-        scannerRef.current = null;
+      } catch (err) {
+        console.log("Permission query not supported, will try direct access");
       }
     };
+    
+    checkCameraPermission();
+    
+    return () => {
+      // Cleanup scanner when component unmounts
+      cleanupScanner();
+    };
   }, []);
+  
+  const cleanupScanner = async () => {
+    if (scannerRef.current) {
+      if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
+        try {
+          await scannerRef.current.stop();
+        } catch (error) {
+          console.error("Failed to stop scanner:", error);
+        }
+      }
+      scannerRef.current = null;
+    }
+  };
+
+  const initScanner = () => {
+    try {
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("qr-reader");
+        console.log("QR scanner initialized successfully");
+      }
+      return true;
+    } catch (err) {
+      console.error("Failed to initialize QR scanner:", err);
+      setError("Failed to initialize scanner. Please try again.");
+      return false;
+    }
+  };
+
+  const requestCameraPermission = async () => {
+    try {
+      // Explicitly request camera access - this will prompt the user
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      
+      // If we get here, permission was granted
+      setPermissionStatus('granted');
+      
+      // Stop the stream since we only needed it to request permission
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Now start the scanner
+      startScanner();
+    } catch (err) {
+      console.error("Camera permission denied:", err);
+      setPermissionStatus('denied');
+      setError("Camera access was denied. Please enable camera access in your browser settings and try again.");
+    }
+  };
 
   const startScanner = async () => {
-    if (!scannerRef.current) {
-      try {
-        scannerRef.current = new Html5Qrcode("qr-reader");
-      } catch (err) {
-        console.error("Failed to initialize QR scanner:", err);
-        setError("Failed to initialize scanner. Please try again.");
-        return;
-      }
+    // Clean up any existing scanner
+    await cleanupScanner();
+    
+    // Initialize a new scanner
+    if (!initScanner()) {
+      return;
     }
     
     setError("");
-    setScanning(true);
     
     try {
       const config = { 
@@ -63,7 +116,9 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
         }
       };
       
-      await scannerRef.current.start(
+      setScanning(true);
+      
+      await scannerRef.current!.start(
         { facingMode: "environment" },
         config,
         (decodedText) => {
@@ -78,10 +133,20 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
           console.debug("QR scan error:", errorMessage);
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       setScanning(false);
-      console.error("QR Scanner error:", err);
-      setError("Could not start camera. Please check camera permissions and try again.");
+      
+      // Provide more specific error messages based on the error
+      if (err.toString().includes('Permission denied') || err.toString().includes('NotAllowedError')) {
+        setError("Camera access denied. Please check your browser settings and enable camera access.");
+      } else if (err.toString().includes('NotFoundError')) {
+        setError("No camera found. Please make sure your device has a working camera.");
+      } else if (err.toString().includes('NotReadableError')) {
+        setError("Camera is in use by another application or not available.");
+      } else {
+        console.error("QR Scanner error:", err);
+        setError("Could not start camera. Please check camera permissions and try again.");
+      }
     }
   };
 
@@ -99,6 +164,20 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
     }
   };
 
+  const renderPermissionButton = () => {
+    if (permissionStatus === 'granted') {
+      return (
+        <Button onClick={startScanner}>Start Scanning</Button>
+      );
+    } else {
+      return (
+        <Button onClick={requestCameraPermission}>
+          Allow Camera Access
+        </Button>
+      );
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg shadow-lg">
       <h2 className="text-xl font-semibold mb-4 text-center">Scan QR Code</h2>
@@ -106,6 +185,11 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
       {error && (
         <div className="mb-4 bg-red-50 text-red-500 p-3 rounded-md">
           {error}
+          {permissionStatus === 'denied' && (
+            <p className="mt-2 text-sm">
+              If you previously denied permission, you may need to reset permissions in your browser settings.
+            </p>
+          )}
         </div>
       )}
       
@@ -117,14 +201,18 @@ const QrScanner = ({ onScanSuccess, onClose }: QrScannerProps) => {
       >
         {!scanning && (
           <div className="flex justify-center items-center h-40 bg-gray-100 rounded-md">
-            <p className="text-gray-500">Camera preview will appear here</p>
+            <p className="text-gray-500">
+              {permissionStatus === 'granted' 
+                ? "Camera preview will appear here" 
+                : "Camera permission required"}
+            </p>
           </div>
         )}
       </div>
       
       <div className="mt-4 flex justify-center gap-2">
         {!scanning ? (
-          <Button onClick={startScanner}>Start Scanning</Button>
+          renderPermissionButton()
         ) : (
           <Button variant="secondary" onClick={stopScanner}>Stop Scanning</Button>
         )}

@@ -1,12 +1,12 @@
-const CACHE_NAME = 'parking-ticket-v1';
+const CACHE_NAME = 'parking-ticket-v3';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/offline.html'
-  // Add other important assets here
+  '/offline.html',
+  '/globals.css'
 ];
 
 // Install event - cache critical assets
@@ -52,10 +52,21 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - handle network requests
 self.addEventListener('fetch', (event) => {
-  console.log('Service Worker: Fetching', event.request.url);
+  // Skip logging for performance reasons
+  // console.log('Service Worker: Fetching', event.request.url);
   
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+  
+  // Skip caching for camera and media-related requests
+  if (
+    event.request.url.includes('getUserMedia') || 
+    event.request.url.includes('camera') ||
+    event.request.url.includes('video') ||
+    event.request.url.includes('microphone')
+  ) {
     return;
   }
   
