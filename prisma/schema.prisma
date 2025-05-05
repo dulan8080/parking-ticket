@@ -11,6 +11,39 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  password        String
+  pin             String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  roles           UserRole[]
+  parkingEntries  ParkingEntry[]
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  users       UserRole[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleId])
+}
+
 model VehicleType {
   id           String       @id @default(uuid())
   name         String
@@ -44,6 +77,8 @@ model ParkingEntry {
   totalAmount   Int?
   duration      Int?
   isPickAndGo   Boolean     @default(false)
+  createdBy     User?       @relation(fields: [userId], references: [id])
+  userId        String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

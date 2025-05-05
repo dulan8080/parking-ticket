@@ -1,23 +1,25 @@
-export type VehicleType = {
-  id: string;
-  name: string;
-  rates: HourlyRate[];
-  iconUrl?: string | null;
-};
-
-export type HourlyRate = {
+export interface HourlyRate {
   hour: number;
   price: number;
-};
+}
 
-export type ParkingEntry = {
+export interface VehicleType {
+  id: string;
+  name: string;
+  iconUrl?: string;
+  rates: HourlyRate[];
+}
+
+export interface ParkingEntry {
   id: string;
   vehicleNumber: string;
-  vehicleType: string | VehicleType;
+  vehicleType: VehicleType | string;
+  vehicleTypeId?: string;
   entryTime: string;
   exitTime?: string;
-  totalAmount?: number;
-  duration?: number; // in hours
   receiptId: string;
-  isPickAndGo?: boolean; // Flag for 15 minutes free parking
-}; 
+  totalAmount?: number;
+  duration?: number;
+  isPickAndGo?: boolean;
+  userId?: string;
+} 

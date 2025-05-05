@@ -3,10 +3,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { HourlyRate, ParkingEntry, VehicleType } from "../types";
 import { saveVehicleTypes, loadVehicleTypes, saveParkingEntries, loadParkingEntries, isOfflineMode } from "../lib/storageHelpers";
+import { useSession } from "next-auth/react";
+import { Session } from "next-auth";
 
 type ParkingContextType = {
   vehicleTypes: VehicleType[];
   parkingEntries: ParkingEntry[];
+  userSession: Session | null;
   addVehicleType: (name: string, iconData?: string | null) => Promise<void>;
   updateVehicleRates: (vehicleId: string, rates: HourlyRate[]) => Promise<void>;
   updateVehicleType: (vehicleId: string, name: string) => Promise<void>;
@@ -16,6 +19,7 @@ type ParkingContextType = {
   findParkingEntry: (vehicleNumber: string) => Promise<ParkingEntry | null>;
   findParkingEntryByReceiptId: (receiptId: string) => Promise<ParkingEntry | null>;
   calculateCharges: (entry: ParkingEntry) => number;
+  refreshSession: () => Promise<void>;
 };
 
 const ParkingContext = createContext<ParkingContextType | undefined>(undefined);
@@ -67,6 +71,25 @@ const generateId = () => {
 export const ParkingProvider = ({ children }: { children: React.ReactNode }) => {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>(() => loadVehicleTypes());
   const [parkingEntries, setParkingEntries] = useState<ParkingEntry[]>(() => loadParkingEntries());
+  const { data: session, status, update } = useSession();
+  const [userSession, setUserSession] = useState<Session | null>(null);
+
+  // Update user session when next-auth session changes
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      setUserSession(session);
+    } else if (status === "unauthenticated") {
+      setUserSession(null);
+    }
+  }, [session, status]);
+
+  const refreshSession = async () => {
+    try {
+      await update();
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+    }
+  };
 
   // Persist state changes to localStorage
   useEffect(() => {
@@ -226,6 +249,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const receiptId = `PK-${Math.floor(100000 + Math.random() * 900000)}`;
       
+      // Get current user ID from session
+      const userId = userSession?.user?.id;
+      
       const response = await fetch('/api/parking-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,7 +259,8 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
           vehicleNumber,
           vehicleTypeId,
           receiptId,
-          isPickAndGo
+          isPickAndGo,
+          userId
         })
       });
 
@@ -264,6 +291,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         throw new Error("Vehicle type not found");
       }
       
+      // Get current user ID from session
+      const userId = userSession?.user?.id;
+      
       // Create a new local entry
       const newEntry: ParkingEntry = {
         id: generateId(),
@@ -271,7 +301,8 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         vehicleType: vType,
         entryTime: now.toISOString(),
         receiptId,
-        isPickAndGo: isPickAndGo
+        isPickAndGo: isPickAndGo,
+        userId: userId
       };
       
       // Add to local state
@@ -441,6 +472,15 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         throw new Error("This vehicle has already exited");
       }
       
+      // Check user permission
+      const isAdmin = userSession?.user?.roles?.includes('ADMIN');
+      const isCurrentUserEntry = entry.userId === userSession?.user?.id;
+      
+      // Only allow admins or the user who created the entry to process an exit
+      if (!isAdmin && !isCurrentUserEntry && entry.userId) {
+        throw new Error("You don't have permission to process exit for this vehicle");
+      }
+      
       // Calculate exit time
       const exitTime = new Date();
       const entryTime = new Date(entry.entryTime);
@@ -459,11 +499,15 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       
       console.log(`Calculated total amount: ${totalAmount}`);
       
+      // Get current user ID from session
+      const userId = userSession?.user?.id;
+      
       // Update the entry with exit information
       const exitPayload = {
         id: entryId,
         totalAmount,
-        duration: durationHours
+        duration: durationHours,
+        userId // Pass the user who processed the exit
       };
       
       console.log("Sending exit payload:", JSON.stringify(exitPayload, null, 2));
@@ -504,6 +548,18 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         return null;
       }
       
+      // Get the entry
+      const entry = parkingEntries[entryIndex];
+      
+      // Check user permission
+      const isAdmin = userSession?.user?.roles?.includes('ADMIN');
+      const isCurrentUserEntry = entry.userId === userSession?.user?.id;
+      
+      // Only allow admins or the user who created the entry to process an exit
+      if (!isAdmin && !isCurrentUserEntry && entry.userId) {
+        throw new Error("You don't have permission to process exit for this vehicle");
+      }
+      
       // Update the entry with exit time and calculate charges
       const now = new Date();
       const updatedEntry = {
@@ -529,6 +585,7 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       value={{
         vehicleTypes,
         parkingEntries,
+        userSession,
         addVehicleType,
         updateVehicleRates,
         updateVehicleType,
@@ -538,6 +595,7 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         findParkingEntry,
         findParkingEntryByReceiptId,
         calculateCharges,
+        refreshSession,
       }}
     >
       {children}

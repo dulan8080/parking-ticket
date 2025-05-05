@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { useParkingContext } from "../../context/ParkingContext";
 import Card from "../../components/ui/Card";
@@ -12,7 +12,8 @@ import { ParkingEntry } from "../../types";
 
 export default function HistoryPage() {
   const router = useRouter();
-  const { parkingEntries, exitVehicle } = useParkingContext();
+  const searchParams = useSearchParams();
+  const { parkingEntries, exitVehicle, userSession } = useParkingContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<string>("entryTime");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -20,9 +21,32 @@ export default function HistoryPage() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessingExit, setIsProcessingExit] = useState(false);
   const [pickAndGoFilter, setPickAndGoFilter] = useState<"all" | "yes" | "no">("all");
+  const [userFilter, setUserFilter] = useState<string | null>(null);
   
-  // Filter entries based on search term and Pick&Go status
+  useEffect(() => {
+    // Get userId from URL if present
+    const userIdParam = searchParams.get('userId');
+    if (userIdParam) {
+      setUserFilter(userIdParam);
+    }
+  }, [searchParams]);
+  
+  // Determine if user is admin
+  const isAdmin = userSession?.user?.roles?.includes('ADMIN');
+  const currentUserId = userSession?.user?.id;
+  
+  // Filter entries based on search term, Pick&Go status, and user
   const filteredEntries = parkingEntries
+    .filter(entry => {
+      // Filter by user if not admin or if user filter is explicitly set
+      if (!isAdmin && currentUserId) {
+        return entry.userId === currentUserId;
+      } else if (userFilter) {
+        return entry.userId === userFilter;
+      }
+      
+      return true;
+    })
     .filter(entry => {
       // Filter by search term
       const matchesSearch = searchTerm
@@ -157,6 +181,15 @@ export default function HistoryPage() {
     if (isProcessingExit) return;
     
     try {
+      // Check if user has permission to process exit
+      const isAdmin = userSession?.user?.roles?.includes('ADMIN');
+      const isOwner = entry.userId === userSession?.user?.id;
+      
+      if (!isAdmin && !isOwner && entry.userId) {
+        alert("You don't have permission to process exit for this vehicle");
+        return;
+      }
+      
       setIsProcessingExit(true);
       const updatedEntry = await exitVehicle(entry.id);
       if (updatedEntry) {
@@ -165,39 +198,49 @@ export default function HistoryPage() {
       }
     } catch (error) {
       console.error("Error processing exit:", error);
-      alert("Failed to process exit. Please try again.");
+      alert(error instanceof Error ? error.message : "Failed to process exit. Please try again.");
     } finally {
       setIsProcessingExit(false);
     }
   };
   
-  // If showing a receipt, render it
-  if (showReceipt && selectedEntry) {
-    return (
-      <div className="container mx-auto px-4 py-6 max-w-md">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Parking Receipt</h1>
-          <Button variant="outline" onClick={handleCloseReceipt}>
-            Back to History
-          </Button>
-        </div>
-        
-        <Receipt 
-          entry={selectedEntry} 
-          isExit={selectedEntry.exitTime ? true : false}
-          autoPrint={selectedEntry.exitTime ? true : false} 
-        />
-      </div>
-    );
-  }
+  // Render UI with user filter controls for admins
   
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Parking History</h1>
-        <Button variant="outline" onClick={() => router.push("/")}>
-          Back to Home
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => router.push("/")}>
+            Back to Home
+          </Button>
+          {isAdmin && (
+            <Button 
+              variant={userFilter ? "secondary" : "primary"}
+              onClick={() => {
+                if (userFilter) {
+                  // Clear user filter
+                  setUserFilter(null);
+                  // Remove userId from URL
+                  const newUrl = new URL(window.location.href);
+                  newUrl.searchParams.delete('userId');
+                  router.replace(newUrl.pathname + newUrl.search);
+                } else {
+                  // Set filter to current user
+                  setUserFilter(currentUserId || null);
+                  // Add userId to URL
+                  const newUrl = new URL(window.location.href);
+                  if (currentUserId) {
+                    newUrl.searchParams.set('userId', currentUserId);
+                    router.replace(newUrl.pathname + newUrl.search);
+                  }
+                }
+              }}
+            >
+              {userFilter ? "Show All Entries" : "Show Only My Entries"}
+            </Button>
+          )}
+        </div>
       </div>
       
       <div className="mb-4 flex flex-col md:flex-row gap-4">
@@ -242,7 +285,10 @@ export default function HistoryPage() {
       </div>
       
       <Card>
-        <h2 className="text-xl font-semibold mb-4">Parking Entry History</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {userFilter ? "Your Parking Entries" : "All Parking Entries"}
+          {!isAdmin && <span className="text-sm font-normal text-gray-500 ml-2">(Showing entries created by you)</span>}
+        </h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -446,6 +492,232 @@ export default function HistoryPage() {
           </table>
         </div>
       </Card>
+      
+      {/* If showing a receipt, render it */}
+      {showReceipt && selectedEntry ? (
+        <div className="container mx-auto px-4 py-6 max-w-md">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Parking Receipt</h1>
+            <Button variant="outline" onClick={handleCloseReceipt}>
+              Back to History
+            </Button>
+          </div>
+          
+          <Receipt 
+            entry={selectedEntry} 
+            isExit={selectedEntry.exitTime ? true : false}
+            autoPrint={selectedEntry.exitTime ? true : false} 
+          />
+        </div>
+      ) : (
+        <div>
+          <Card>
+            <h2 className="text-xl font-semibold mb-4">Parking Entry History</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("vehicleNumber")}
+                    >
+                      Vehicle Number
+                      {sortField === "vehicleNumber" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("vehicleType")}
+                    >
+                      Vehicle Type
+                      {sortField === "vehicleType" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("entryTime")}
+                    >
+                      Entry Time
+                      {sortField === "entryTime" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("exitTime")}
+                    >
+                      Exit Time
+                      {sortField === "exitTime" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("totalAmount")}
+                    >
+                      Amount
+                      {sortField === "totalAmount" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Receipt ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pick&Go
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedEntries.length > 0 ? (
+                    sortedEntries.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium text-gray-900">
+                              {entry.vehicleNumber}
+                            </div>
+                            {!entry.exitTime && (
+                              <button
+                                onClick={() => handleProcessExit(entry)}
+                                disabled={isProcessingExit}
+                                aria-label="Quick exit"
+                                className="bg-red-100 text-red-800 p-1 rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 md:hidden"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                  <polyline points="16 17 21 12 16 7"></polyline>
+                                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {getVehicleTypeName(entry.vehicleType)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(entry.entryTime)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(entry.exitTime)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {calculateDuration(entry.entryTime, entry.exitTime)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatCurrency(entry.totalAmount)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 font-mono">
+                            {entry.receiptId}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              entry.isPickAndGo
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {entry.isPickAndGo ? "Yes" : "No"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              entry.exitTime
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {entry.exitTime ? "Completed" : "Active"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handlePrintReceipt(entry)}
+                              aria-label={`Print ${entry.exitTime ? "exit" : "entry"} receipt`}
+                            >
+                              <span className="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                  <rect x="6" y="14" width="12" height="8"></rect>
+                                </svg>
+                                Print
+                              </span>
+                            </Button>
+                            
+                            {!entry.exitTime && (
+                              <Button 
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleProcessExit(entry)}
+                                disabled={isProcessingExit}
+                                aria-label="Process exit"
+                              >
+                                <span className="flex items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                  </svg>
+                                  Exit
+                                </span>
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="px-6 py-4 text-center text-sm text-gray-500">
+                        No parking entries found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 } 
