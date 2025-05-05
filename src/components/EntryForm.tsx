@@ -236,6 +236,23 @@ const EntryForm = () => {
       )}
       
       <form onSubmit={handleSubmit}>
+        {/* Vehicle Number Input - Moved to top and made larger */}
+        <div className="mb-6">
+          <label className="block text-lg font-medium text-gray-800 mb-2">
+            Vehicle Number
+          </label>
+          <input
+            className="w-full px-4 py-4 text-2xl font-semibold tracking-wider border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase text-center"
+            type="text"
+            value={vehicleNumber}
+            onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+            placeholder="ENTER VEHICLE NUMBER"
+            disabled={isProcessing}
+            required
+          />
+        </div>
+        
+        {/* Vehicle Type Selection */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Select Vehicle Type
@@ -265,16 +282,6 @@ const EntryForm = () => {
             ))}
           </div>
         </div>
-        
-        <Input
-          label="Vehicle Number"
-          placeholder="Enter vehicle number"
-          value={vehicleNumber}
-          onChange={(e) => setVehicleNumber(e.target.value)}
-          disabled={isProcessing}
-          uppercase={true}
-          required
-        />
         
         {/* Pick&Go toggle switch */}
         <div className="mb-4">

@@ -29,7 +29,9 @@ const Receipt = ({ entry, isExit = false, autoPrint = false }: ReceiptProps) => 
 
     // Automatically print if autoPrint is true
     if (autoPrint) {
-      handlePrint();
+      setTimeout(() => {
+        handlePrint();
+      }, 500);
     }
   }, [entry, autoPrint]);
 
@@ -74,28 +76,52 @@ const Receipt = ({ entry, isExit = false, autoPrint = false }: ReceiptProps) => 
     }
   };
 
-  // Handle print directly
+  // Handle print directly using the print dialog instead of manipulating the DOM
   const handlePrint = () => {
-    if (!receiptRef.current) return;
+    if (isPrinting) return;
     
-    setIsPrinting(true);
-    
-    const originalContents = document.body.innerHTML;
-    const printContent = receiptRef.current.innerHTML;
-    
-    document.body.innerHTML = `
-      <div style="max-width: 80mm; margin: 0 auto; padding: 10px;">
-        ${printContent}
-      </div>
-    `;
-    
-    window.print();
-    document.body.innerHTML = originalContents;
-    
-    // This is a workaround as we lost React's state management during printing
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    try {
+      setIsPrinting(true);
+      
+      // Apply print styles with a custom print stylesheet
+      const style = document.createElement('style');
+      style.textContent = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #receipt-content, #receipt-content * {
+            visibility: visible;
+          }
+          #receipt-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: 80mm; 
+            margin: 0 auto;
+            padding: 10px;
+          }
+          @page {
+            size: 80mm auto;
+            margin: 5mm;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Trigger the print dialog
+      window.print();
+      
+      // Remove the style after printing
+      setTimeout(() => {
+        document.head.removeChild(style);
+        setIsPrinting(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error during printing:', error);
+      setIsPrinting(false);
+    }
   };
 
   // Create a safe function for displaying the current date
@@ -141,6 +167,7 @@ const Receipt = ({ entry, isExit = false, autoPrint = false }: ReceiptProps) => 
     <div className="mb-4">
       <div 
         ref={receiptRef} 
+        id="receipt-content"
         className="bg-white p-6 border border-gray-300 rounded-lg max-w-md mx-auto shadow-md"
       >
         <div className="text-center mb-4 border-b pb-3">
