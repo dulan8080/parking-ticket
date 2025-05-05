@@ -2,8 +2,6 @@
 
 import { useRef, useEffect, useState } from "react";
 import { format, formatDistanceStrict, isValid } from "date-fns";
-// Uncomment the QRCode import
-// import ReactToPrint from "react-to-print";
 import QRCode from "react-qr-code";
 import { ParkingEntry } from "../types";
 import Button from "./ui/Button";
@@ -11,11 +9,11 @@ import Button from "./ui/Button";
 type ReceiptProps = {
   entry: ParkingEntry;
   isExit?: boolean;
+  autoPrint?: boolean;
 };
 
-const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
+const Receipt = ({ entry, isExit = false, autoPrint = false }: ReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
-  // Replace qrCanvasRef with qrValue
   const [isPrinting, setIsPrinting] = useState(false);
   const [qrValue, setQrValue] = useState("");
 
@@ -28,7 +26,12 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
     if (entry.receiptId) {
       setQrValue(entry.receiptId);
     }
-  }, [entry]);
+
+    // Automatically print if autoPrint is true
+    if (autoPrint) {
+      handlePrint();
+    }
+  }, [entry, autoPrint]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -71,6 +74,7 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
     }
   };
 
+  // Handle print directly
   const handlePrint = () => {
     if (!receiptRef.current) return;
     
@@ -191,7 +195,6 @@ const Receipt = ({ entry, isExit = false }: ReceiptProps) => {
         
         <div className="flex justify-center my-4">
           <div className="border-2 border-gray-300 p-4 rounded bg-white">
-            {/* Replace canvas with QRCode component */}
             <QRCode
               value={qrValue || "placeholder"}
               size={150}

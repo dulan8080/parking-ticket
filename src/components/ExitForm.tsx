@@ -131,7 +131,7 @@ const ExitForm = () => {
   if (showReceipt && exitedEntry) {
     return (
       <div className="mt-4">
-        <Receipt entry={exitedEntry} isExit={true} />
+        <Receipt entry={exitedEntry} isExit={true} autoPrint={true} />
         <div className="text-center mt-4">
           <Button 
             onClick={handleNewExit}

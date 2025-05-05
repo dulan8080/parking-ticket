@@ -1,0 +1,19 @@
+Please add the following icon files to this directory:
+
+1. icon-192x192.png - 192x192 pixels
+2. icon-512x512.png - 512x512 pixels
+
+You can create these icons using any image editing software or online tools like:
+- https://www.canva.com/
+- https://www.figma.com/
+- https://www.photopea.com/
+
+The icons should be in PNG format with transparent backgrounds.
+
+For best results:
+- Use the app's branding colors
+- Make sure the icon is legible at small sizes
+- Leave some padding around the edges
+- Use a simple, recognizable design
+
+Once you've created the icons, place them in this directory and delete this placeholder file. 

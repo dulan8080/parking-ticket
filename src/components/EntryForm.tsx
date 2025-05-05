@@ -206,7 +206,7 @@ const EntryForm = () => {
     console.log("Showing receipt for entry:", createdEntry); // Debug log
     return (
       <div className="mt-4">
-        <Receipt entry={createdEntry} />
+        <Receipt entry={createdEntry} autoPrint={true} />
         <div className="text-center mt-4">
           <Button 
             onClick={handleNewEntry}

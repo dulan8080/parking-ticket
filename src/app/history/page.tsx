@@ -184,7 +184,8 @@ export default function HistoryPage() {
         
         <Receipt 
           entry={selectedEntry} 
-          isExit={selectedEntry.exitTime ? true : false} 
+          isExit={selectedEntry.exitTime ? true : false}
+          autoPrint={selectedEntry.exitTime ? true : false} 
         />
       </div>
     );
