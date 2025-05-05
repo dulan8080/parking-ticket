@@ -44,41 +44,52 @@ export default function Home() {
               <path d="M163 10.5v19h6c4 0 5.5-3 5.5-6s-1.5-6-5.5-6h-6" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => router.push("/history")}
-            aria-label="View parking history"
-          >
-            History
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/settings")}
+              aria-label="Settings"
+              className="flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/history")}
+              aria-label="View parking history"
+            >
+              History
+            </Button>
+          </div>
         </header>
 
         <div className="bg-white shadow-md rounded-lg p-6">
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+          <div className="mb-6 flex justify-center">
+            <div className="relative bg-gray-200 rounded-full h-14 p-1 shadow-inner w-full max-w-xs">
               <button
                 onClick={() => setActiveTab("entry")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`absolute inset-y-1 left-1 rounded-full transition-all duration-300 flex items-center justify-center text-base font-medium w-[calc(50%-2px)] ${
                   activeTab === "entry"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-green-500 text-white shadow-md translate-x-0"
+                    : "bg-gray-200 text-gray-500"
                 }`}
-                aria-current={activeTab === "entry" ? "page" : undefined}
               >
-                Entry
+                ENTRY
               </button>
               <button
                 onClick={() => setActiveTab("exit")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`absolute inset-y-1 right-1 rounded-full transition-all duration-300 flex items-center justify-center text-base font-medium w-[calc(50%-2px)] ${
                   activeTab === "exit"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-red-500 text-white shadow-md translate-x-0"
+                    : "bg-gray-200 text-gray-500"
                 }`}
-                aria-current={activeTab === "exit" ? "page" : undefined}
               >
-                Exit
+                EXIT
               </button>
-            </nav>
+            </div>
           </div>
 
           {activeTab === "entry" ? <EntryForm /> : <ExitForm />}

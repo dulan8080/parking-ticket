@@ -324,8 +324,24 @@ export default function HistoryPage() {
                 sortedEntries.map((entry) => (
                   <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {entry.vehicleNumber}
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-gray-900">
+                          {entry.vehicleNumber}
+                        </div>
+                        {!entry.exitTime && (
+                          <button
+                            onClick={() => handleProcessExit(entry)}
+                            disabled={isProcessingExit}
+                            aria-label="Quick exit"
+                            className="bg-red-100 text-red-800 p-1 rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 md:hidden"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                              <polyline points="16 17 21 12 16 7"></polyline>
+                              <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
