@@ -1,5 +1,16 @@
 {
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "AUTH_SECRET": {
+      "description": "A secret key for NextAuth.js authentication"
+    },
+    "DATABASE_URL": {
+      "description": "The connection string for the PostgreSQL database"
+    },
+    "DIRECT_URL": {
+      "description": "The direct connection string for the PostgreSQL database"
+    }
+  }
 } 
