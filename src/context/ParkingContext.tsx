@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { HourlyRate, ParkingEntry, VehicleType } from "../types";
+import { saveVehicleTypes, loadVehicleTypes, saveParkingEntries, loadParkingEntries, isOfflineMode } from "../lib/storageHelpers";
 
 type ParkingContextType = {
   vehicleTypes: VehicleType[];
@@ -19,14 +20,73 @@ type ParkingContextType = {
 
 const ParkingContext = createContext<ParkingContextType | undefined>(undefined);
 
+// Mock data for when database connection fails
+const MOCK_VEHICLE_TYPES = [
+  {
+    id: "car-1",
+    name: "Car",
+    rates: [
+      { hour: 1, price: 50 },
+      { hour: 3, price: 100 },
+      { hour: 6, price: 150 },
+      { hour: 12, price: 250 },
+      { hour: 24, price: 400 }
+    ]
+  },
+  {
+    id: "bike-1",
+    name: "Bike",
+    rates: [
+      { hour: 1, price: 20 },
+      { hour: 3, price: 40 },
+      { hour: 6, price: 80 },
+      { hour: 12, price: 120 },
+      { hour: 24, price: 200 }
+    ]
+  },
+  {
+    id: "van-1",
+    name: "Van",
+    rates: [
+      { hour: 1, price: 80 },
+      { hour: 3, price: 150 },
+      { hour: 6, price: 250 },
+      { hour: 12, price: 400 },
+      { hour: 24, price: 600 }
+    ]
+  }
+];
+
+const MOCK_PARKING_ENTRIES: ParkingEntry[] = [];
+
+// Helper function to generate a unique ID for mock entries
+const generateId = () => {
+  return `id-${Math.random().toString(36).substring(2, 9)}`;
+};
+
 export const ParkingProvider = ({ children }: { children: React.ReactNode }) => {
-  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-  const [parkingEntries, setParkingEntries] = useState<ParkingEntry[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>(() => loadVehicleTypes());
+  const [parkingEntries, setParkingEntries] = useState<ParkingEntry[]>(() => loadParkingEntries());
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    saveVehicleTypes(vehicleTypes);
+  }, [vehicleTypes]);
+
+  useEffect(() => {
+    saveParkingEntries(parkingEntries);
+  }, [parkingEntries]);
 
   // Initial data loading
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        // Check if offline
+        if (isOfflineMode()) {
+          console.log("Context: App is offline, using cached data");
+          return; // Use data already loaded from localStorage
+        }
+
         console.log("Context: Loading initial data");
         
         // Fetch vehicle types from API
@@ -41,6 +101,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         } else {
           const errorText = await vehicleTypesResponse.text();
           console.error("Context: Error fetching vehicle types:", errorText);
+          // Use mock data if API fails
+          console.log("Context: Using mock vehicle types data");
+          setVehicleTypes(MOCK_VEHICLE_TYPES);
         }
 
         // Fetch parking entries from API
@@ -55,6 +118,9 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         } else {
           const errorText = await entriesResponse.text();
           console.error("Context: Error fetching parking entries:", errorText);
+          // Use mock data if API fails
+          console.log("Context: Using mock parking entries data");
+          setParkingEntries(MOCK_PARKING_ENTRIES);
         }
       } catch (error) {
         console.error("Context: Error loading initial data:", error);
@@ -185,7 +251,34 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       }
     } catch (error) {
       console.error("Error adding parking entry:", error);
-      throw error;
+      
+      // Fallback to offline mode if API fails
+      console.log("Falling back to offline mode for adding parking entry");
+      
+      // Create a mock entry
+      const now = new Date();
+      const receiptId = `PK-${Math.floor(100000 + Math.random() * 900000)}`;
+      const vType = vehicleTypes.find(vt => vt.id === vehicleTypeId);
+      
+      if (!vType) {
+        throw new Error("Vehicle type not found");
+      }
+      
+      // Create a new local entry
+      const newEntry: ParkingEntry = {
+        id: generateId(),
+        vehicleNumber,
+        vehicleType: vType,
+        entryTime: now.toISOString(),
+        receiptId,
+        isPickAndGo: isPickAndGo
+      };
+      
+      // Add to local state
+      const updatedEntries = [...parkingEntries, newEntry];
+      setParkingEntries(updatedEntries);
+      
+      return newEntry;
     }
   };
 
@@ -202,7 +295,16 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       }
     } catch (error) {
       console.error("Error finding parking entry:", error);
-      return null;
+      
+      // Fallback to offline mode if API fails
+      console.log("Falling back to offline mode for finding parking entry");
+      
+      // Search in local state
+      const entry = parkingEntries.find(
+        e => e.vehicleNumber.toUpperCase() === vehicleNumber.toUpperCase() && !e.exitTime
+      );
+      
+      return entry || null;
     }
   };
 
@@ -219,7 +321,16 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
       }
     } catch (error) {
       console.error("Error finding parking entry by receipt ID:", error);
-      return null;
+      
+      // Fallback to offline mode if API fails
+      console.log("Falling back to offline mode for finding parking entry by receipt ID");
+      
+      // Search in local state
+      const entry = parkingEntries.find(
+        e => e.receiptId === receiptId && !e.exitTime
+      );
+      
+      return entry || null;
     }
   };
 
@@ -381,8 +492,35 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
         throw new Error(`Failed to process exit: ${errorText}`);
       }
     } catch (error) {
-      console.error("Error processing exit:", error);
-      return null;
+      console.error("Error exiting vehicle:", error);
+      
+      // Fallback to offline mode if API fails
+      console.log("Falling back to offline mode for exit vehicle");
+      
+      // Find entry in local state
+      const entryIndex = parkingEntries.findIndex(e => e.id === entryId);
+      
+      if (entryIndex === -1) {
+        return null;
+      }
+      
+      // Update the entry with exit time and calculate charges
+      const now = new Date();
+      const updatedEntry = {
+        ...parkingEntries[entryIndex],
+        exitTime: now.toISOString()
+      };
+      
+      // Calculate charges
+      const amount = calculateCharges(updatedEntry);
+      updatedEntry.totalAmount = amount;
+      
+      // Update local state
+      const updatedEntries = [...parkingEntries];
+      updatedEntries[entryIndex] = updatedEntry;
+      setParkingEntries(updatedEntries);
+      
+      return updatedEntry;
     }
   };
 
