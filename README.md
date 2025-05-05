@@ -1,24 +1,31 @@
-# Parking Ticket System
+# Parking Ticket Management System
 
-A mobile-responsive web application for managing parking tickets, entrances, exits, and calculating charges.
+A modern web application for managing parking tickets and vehicle entries/exits with user authentication and role-based permissions.
 
 ## Features
 
-- **Mobile-First Design**: Fully responsive for use on mobile devices
-- **Vehicle Entry**: Generate tickets with entry time and QR code
-- **Vehicle Exit**: Calculate charges based on duration, print exit receipts
-- **Settings**: Configure vehicle types and hourly rates
-- **Local Storage**: Data persists between sessions
+- User authentication with email/password or PIN
+- Role-based permissions (Admin and Operator roles)
+- Vehicle entry and exit management
+- QR code generation for tickets
+- Receipt printing
+- Pick & Go functionality for short-term parking
+- Offline support with local storage fallback
+- Responsive design for mobile and desktop
 
 ## Technology Stack
 
-- Next.js 14
+- Next.js 15
+- React
 - TypeScript
 - TailwindCSS
-- React Hooks and Context API
-- Local Storage for data persistence
-- React-QR-Code for QR code generation
-- React-to-Print for printing receipts
+- NextAuth.js for authentication
+- Prisma ORM
+- PostgreSQL (with mock data fallback)
+
+## Deployment
+
+The application is set up for deployment on Vercel with environment variables for authentication and database configuration.
 
 ## Deploying to Vercel
 
@@ -71,5 +78,4 @@ After making changes to your Prisma schema:
 ## Development
 
 To run the project locally:
-
 ```
