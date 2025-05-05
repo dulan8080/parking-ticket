@@ -6,7 +6,7 @@ import Button from "./ui/Button";
 import Input from "./ui/Input";
 import Card from "./ui/Card";
 import Receipt from "./Receipt";
-import QrScanner from "./QrScanner";
+import SimpleQrScanner from "./SimpleQrScanner";
 import { ParkingEntry } from "../types";
 
 const ExitForm = () => {
@@ -83,6 +83,7 @@ const ExitForm = () => {
   const handleScanSuccess = async (receiptId: string) => {
     try {
       console.log("QR scan successful, received data:", receiptId);
+      setShowScanner(false);
       
       // Try to find entry by receipt ID first (if it looks like a receipt ID)
       if (receiptId.startsWith("PK-")) {
@@ -112,15 +113,13 @@ const ExitForm = () => {
     } catch (err) {
       console.error("Error processing QR scan:", err);
       setError(`Error processing QR code: ${err instanceof Error ? err.message : "Unknown error"}`);
-    } finally {
-      setShowScanner(false);
     }
   };
 
   if (showScanner) {
     return (
       <Card className="mt-4">
-        <QrScanner
+        <SimpleQrScanner
           onScanSuccess={handleScanSuccess}
           onClose={() => setShowScanner(false)}
         />
@@ -200,14 +199,14 @@ const ExitForm = () => {
           uppercase={true}
         />
         
-        <Button type="submit" className="w-full" disabled={isProcessing}>
+        <Button 
+          type="submit" 
+          className="w-full mt-2"
+          disabled={isProcessing}
+        >
           {isProcessing ? "Processing..." : "Process Exit"}
         </Button>
       </form>
-      
-      <div className="mt-4 text-center text-sm text-gray-500">
-        <p>Either scan the QR code from the entry receipt or enter the vehicle number.</p>
-      </div>
     </Card>
   );
 };
