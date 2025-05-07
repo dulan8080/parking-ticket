@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
@@ -8,10 +8,10 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams?.get("callbackUrl") || "/";
   const [activeTab, setActiveTab] = useState<"credentials" | "pin">("credentials");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   // Check for error in URL
   useEffect(() => {
-    const errorFromUrl = searchParams.get("error");
+    const errorFromUrl = searchParams?.get("error");
     if (errorFromUrl) {
       setError(
         errorFromUrl === "CredentialsSignin" 
@@ -34,6 +34,15 @@ export default function LoginPage() {
       );
     }
   }, [searchParams]);
+
+  const handleNavigation = useCallback((url: string) => {
+    try {
+      // Using plain window.location for more direct navigation
+      window.location.href = url;
+    } catch (e) {
+      console.error("Navigation error:", e);
+    }
+  }, []);
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +59,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password");
       } else if (result?.ok) {
-        router.push(callbackUrl);
+        handleNavigation(callbackUrl);
       }
     } catch (error) {
       setError("An error occurred during login");
@@ -74,7 +83,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid PIN");
       } else if (result?.ok) {
-        router.push(callbackUrl);
+        handleNavigation(callbackUrl);
       }
     } catch (error) {
       setError("An error occurred during login");
@@ -236,5 +245,34 @@ export default function LoginPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+// Loading fallback UI
+function LoginSkeleton() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center py-8 px-4 bg-gray-50">
+      <div className="max-w-md w-full">
+        <div className="flex justify-center mb-6">
+          <div className="w-[190px] h-[40px] bg-gray-200 animate-pulse rounded" />
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-6 w-1/2 mx-auto" />
+          <div className="h-12 bg-gray-200 rounded-full mb-6 mx-auto w-full max-w-xs" />
+          <div className="h-[72px] bg-gray-200 rounded mb-4" />
+          <div className="h-[72px] bg-gray-200 rounded mb-6" />
+          <div className="h-10 bg-gray-200 rounded" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// Main page component with Suspense boundary for useSearchParams
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginSkeleton />}>
+      <LoginForm />
+    </Suspense>
   );
 } 

@@ -44,8 +44,8 @@ export default function RootLayout({
         
         {/* Camera permissions meta tags */}
         <meta name="permissions-policy" content="camera=self, microphone=self" />
-        {/* Allow media devices specifically for camera access */}
-        <meta httpEquiv="Content-Security-Policy" content="default-src 'self' https://*; connect-src 'self' https://* wss://*; media-src 'self' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;" />
+        {/* Enhanced CSP that works better with NextAuth and blob URLs */}
+        <meta httpEquiv="Content-Security-Policy" content="default-src 'self' https://*; connect-src 'self' https://* wss://*; media-src 'self' blob: https://*; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*; frame-src 'self' https://*; font-src 'self' data:" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>

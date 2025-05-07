@@ -1,22 +1,46 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-  // Collect environment info
-  const envInfo = {
-    NODE_ENV: process.env.NODE_ENV,
-    VERCEL_URL: process.env.VERCEL_URL ? 'Set' : 'Not set',
-    VERCEL_ENV: process.env.VERCEL_ENV,
-    AUTH_SECRET: process.env.AUTH_SECRET ? 'Set' : 'Not set',
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'Set' : 'Not set',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ? 'Set' : 'Not set',
-    DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
-    DIRECT_URL: process.env.DIRECT_URL ? 'Set' : 'Not set',
+export async function GET(request: NextRequest) {
+  // Check if basic environment variables are set
+  const envStatus = {
+    AUTH_SECRET: !!process.env.AUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || null,
+    VERCEL_URL: process.env.VERCEL_URL || null,
+    NODE_ENV: process.env.NODE_ENV || 'unknown',
+    DATABASE_URL: !!process.env.DATABASE_URL, // Just show if it exists, not the actual value
   };
 
-  return NextResponse.json({ 
-    status: 'ok',
-    message: 'Environment information (sensitive values redacted)',
-    environment: envInfo,
-    serverTime: new Date().toISOString()
+  // Check if we have the correct URL setup
+  const nextAuthUrl = process.env.NEXTAUTH_URL || 
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+
+  // Check request headers and cookies
+  const headers = Object.fromEntries(
+    [...request.headers.entries()].map(([key, value]) => 
+      [key, typeof value === 'string' ? value.substring(0, 50) + (value.length > 50 ? '...' : '') : value]
+    )
+  );
+
+  // Security check - only enable in development or with debug param
+  if (process.env.NODE_ENV !== 'development' && request.nextUrl.searchParams.get('debug') !== 'true') {
+    return NextResponse.json({ 
+      message: 'Debug information is only available in development or with the debug parameter',
+      env: 'production'
+    });
+  }
+
+  return NextResponse.json({
+    environment: process.env.NODE_ENV,
+    envStatus,
+    nextAuthUrl,
+    headers: {
+      host: headers.host,
+      referer: headers.referer,
+      'user-agent': headers['user-agent'],
+      'content-type': headers['content-type'],
+      'x-forwarded-for': headers['x-forwarded-for'],
+      'x-forwarded-proto': headers['x-forwarded-proto'],
+    },
+    timestamp: new Date().toISOString(),
   });
 } 

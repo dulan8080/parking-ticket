@@ -69,6 +69,19 @@ export default auth((req) => {
   return NextResponse.next();
 })
 
+// Exclude API routes and other static assets from middleware
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|images).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (ALL API routes to avoid Edge runtime issues with bcryptjs)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - manifest.json (PWA manifest)
+     * - icons (PWA icons)
+     * - images (image assets)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|icons|images).*)',
+  ],
 } 
