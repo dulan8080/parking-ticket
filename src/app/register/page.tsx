@@ -84,28 +84,30 @@ export default function RegisterPage() {
     <main className="flex min-h-screen flex-col items-center justify-center py-8 px-4 bg-gray-50">
       <div className="max-w-md w-full">
         <div className="flex justify-center mb-6">
-          <svg 
-            width="190" 
-            height="40" 
-            viewBox="0 0 190 40" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="ZynkSlot Parking System"
-          >
-            <rect x="2" y="5" width="36" height="30" rx="4" fill="#3B82F6" />
-            <text x="11" y="27" fontSize="22" fontWeight="bold" fill="white">P</text>
-            
-            <path d="M46 10.5h10.2l-8.5 19h10.8" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M62 29.5l2.5-9.5 2 5.5 2-5.5 2.5 9.5" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M74 29.5l2-19 3 11 3-11 2 19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M87 29.5v-19l7 19v-19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M106 10.5h-6v19h6" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M99 20h5" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M110 10.5h6c3.8 0 5 3 5 5.5s-1.2 5.5-5 5.5h-6v8" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M125 10.5v19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M143 10.5c-5.5 0-10 4-10 9.5s4.5 9.5 10 9.5 10-4 10-9.5-4.5-9.5-10-9.5z" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M163 10.5v19h6c4 0 5.5-3 5.5-6s-1.5-6-5.5-6h-6" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Link href="/">
+            <svg 
+              width="190" 
+              height="40" 
+              viewBox="0 0 190 40" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              aria-label="ZynkSlot Parking System"
+            >
+              <rect x="2" y="5" width="36" height="30" rx="4" fill="#3B82F6" />
+              <text x="11" y="27" fontSize="22" fontWeight="bold" fill="white">P</text>
+              
+              <path d="M46 10.5h10.2l-8.5 19h10.8" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M62 29.5l2.5-9.5 2 5.5 2-5.5 2.5 9.5" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M74 29.5l2-19 3 11 3-11 2 19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M87 29.5v-19l7 19v-19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M106 10.5h-6v19h6" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M99 20h5" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M110 10.5h6c3.8 0 5 3 5 5.5s-1.2 5.5-5 5.5h-6v8" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M125 10.5v19" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M143 10.5c-5.5 0-10 4-10 9.5s4.5 9.5 10 9.5 10-4 10-9.5-4.5-9.5-10-9.5z" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M163 10.5v19h6c4 0 5.5-3 5.5-6s-1.5-6-5.5-6h-6" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
         </div>
 
         <Card>

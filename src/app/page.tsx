@@ -69,10 +69,10 @@ export default function Home() {
                 >
                   History
                 </Button>
-                <UserProfile session={session} />
+                <UserProfile />
               </>
             ) : (
-              <UserProfile session={null} />
+              <UserProfile />
             )}
           </div>
         </header>

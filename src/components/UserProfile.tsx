@@ -3,17 +3,38 @@
 import { useSession, signOut } from "next-auth/react";
 import Button from "./ui/Button";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function UserProfile() {
-  const { data: session, status } = useSession();
+export default function UserProfile({ session: propSession }: { session?: any }) {
+  const { data: sessionData, status } = useSession();
+  const session = propSession !== undefined ? propSession : sessionData;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
   
   if (status === "loading") {
     return <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />;
   }
   
+  // If no session, display login/register buttons
   if (!session?.user) {
-    return null;
+    return (
+      <div className="flex items-center space-x-2">
+        <Button
+          onClick={() => router.push("/login")}
+          variant="primary"
+          size="sm"
+        >
+          Login
+        </Button>
+        <Button
+          onClick={() => router.push("/register")}
+          variant="outline"
+          size="sm"
+        >
+          Register
+        </Button>
+      </div>
+    );
   }
   
   const isAdmin = session.user.roles?.includes("ADMIN");
