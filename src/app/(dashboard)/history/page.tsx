@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { ParkingEntry } from "@/types";
 
-export default function HistoryPage() {
+function HistoryContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [entries, setEntries] = useState<ParkingEntry[]>([]);
@@ -158,5 +158,34 @@ export default function HistoryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Loading fallback UI
+function HistorySkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Parking History</h1>
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-40 mb-6" />
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="h-10 bg-gray-200 rounded-t" />
+          <div className="space-y-4 p-4">
+            {[...Array(5)].map((_, idx) => (
+              <div key={idx} className="h-12 bg-gray-200 rounded w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component with Suspense
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<HistorySkeleton />}>
+      <HistoryContent />
+    </Suspense>
   );
 } 
