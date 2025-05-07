@@ -25,7 +25,11 @@ export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV !== 'development' && request.nextUrl.searchParams.get('debug') !== 'true') {
     return NextResponse.json({ 
       message: 'Debug information is only available in development or with the debug parameter',
-      env: 'production'
+      env: 'production',
+      debugToolsAvailable: {
+        databaseDiagnostic: '/debug/database',
+        connectionCheck: '/api/debug/connection'
+      }
     });
   }
 
@@ -42,5 +46,9 @@ export async function GET(request: NextRequest) {
       'x-forwarded-proto': headers['x-forwarded-proto'],
     },
     timestamp: new Date().toISOString(),
+    debugToolsAvailable: {
+      databaseDiagnostic: '/debug/database',
+      connectionCheck: '/api/debug/connection'
+    }
   });
 } 
