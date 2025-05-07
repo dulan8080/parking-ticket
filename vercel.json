@@ -3,14 +3,8 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
-    "AUTH_SECRET": {
-      "description": "A secret key for NextAuth.js authentication"
-    },
-    "DATABASE_URL": {
-      "description": "The connection string for the PostgreSQL database"
-    },
-    "DIRECT_URL": {
-      "description": "The direct connection string for the PostgreSQL database"
-    }
+    "AUTH_SECRET": "",
+    "DATABASE_URL": "",
+    "DIRECT_URL": ""
   }
 } 
