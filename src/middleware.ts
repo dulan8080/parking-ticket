@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 
+// This function can be marked `async` if using `await` inside
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
+  
+  // Ensure we're using HTTPS on Vercel
+  if (process.env.VERCEL_URL && nextUrl.protocol === 'http:' && !nextUrl.hostname.includes('localhost')) {
+    const secureUrl = nextUrl.clone();
+    secureUrl.protocol = 'https:';
+    return NextResponse.redirect(secureUrl);
+  }
+
   const isLoggedIn = !!session;
   const isAuthRoute = nextUrl.pathname.startsWith('/login') || 
                       nextUrl.pathname.startsWith('/api/auth') ||

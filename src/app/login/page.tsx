@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Link from "next/link";
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
@@ -22,6 +22,18 @@ function LoginForm() {
   
   // PIN state
   const [pin, setPin] = useState("");
+
+  // Check for error in URL
+  useEffect(() => {
+    const errorFromUrl = searchParams.get("error");
+    if (errorFromUrl) {
+      setError(
+        errorFromUrl === "CredentialsSignin" 
+          ? "Invalid credentials" 
+          : "An error occurred during login"
+      );
+    }
+  }, [searchParams]);
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +49,9 @@ function LoginForm() {
 
       if (result?.error) {
         setError("Invalid email or password");
-        return;
+      } else if (result?.ok) {
+        router.push(callbackUrl);
       }
-
-      router.push(callbackUrl);
     } catch (error) {
       setError("An error occurred during login");
       console.error("Login error:", error);
@@ -62,10 +73,9 @@ function LoginForm() {
 
       if (result?.error) {
         setError("Invalid PIN");
-        return;
+      } else if (result?.ok) {
+        router.push(callbackUrl);
       }
-
-      router.push(callbackUrl);
     } catch (error) {
       setError("An error occurred during login");
       console.error("Login error:", error);
@@ -130,6 +140,7 @@ function LoginForm() {
                     ? "bg-blue-500 text-white shadow-md translate-x-0"
                     : "bg-gray-200 text-gray-500"
                 }`}
+                type="button"
               >
                 Email & Password
               </button>
@@ -143,6 +154,7 @@ function LoginForm() {
                     ? "bg-blue-500 text-white shadow-md translate-x-0"
                     : "bg-gray-200 text-gray-500"
                 }`}
+                type="button"
               >
                 PIN
               </button>
@@ -224,34 +236,5 @@ function LoginForm() {
         </Card>
       </div>
     </main>
-  );
-}
-
-// Loading fallback UI
-function LoginSkeleton() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center py-8 px-4 bg-gray-50">
-      <div className="max-w-md w-full">
-        <div className="flex justify-center mb-6">
-          <div className="w-[190px] h-[40px] bg-gray-200 animate-pulse rounded" />
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-6 w-1/2 mx-auto" />
-          <div className="h-12 bg-gray-200 rounded-full mb-6 mx-auto w-full max-w-xs" />
-          <div className="h-[72px] bg-gray-200 rounded mb-4" />
-          <div className="h-[72px] bg-gray-200 rounded mb-6" />
-          <div className="h-10 bg-gray-200 rounded" />
-        </div>
-      </div>
-    </main>
-  );
-}
-
-// Main page component with Suspense
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<LoginSkeleton />}>
-      <LoginForm />
-    </Suspense>
   );
 } 

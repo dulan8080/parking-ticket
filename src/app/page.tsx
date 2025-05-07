@@ -10,6 +10,7 @@ import InstallPrompt from "../components/InstallPrompt";
 import { registerServiceWorker } from "./register-sw";
 import { useParkingContext } from "../context/ParkingContext";
 import UserProfile from "../components/UserProfile";
+import Link from "next/link";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"entry" | "exit">("entry");
@@ -111,18 +112,20 @@ export default function Home() {
             <h1 className="text-2xl font-bold mb-4">Welcome to Parking Management</h1>
             <p className="mb-6">Please login to access the parking system.</p>
             <div className="flex justify-center space-x-4">
-              <Button
-                onClick={() => router.push("/login")}
-                variant="primary"
-              >
-                Login
-              </Button>
-              <Button
-                onClick={() => router.push("/register")}
-                variant="outline"
-              >
-                Register
-              </Button>
+              <Link href="/login">
+                <Button
+                  variant="primary"
+                >
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button
+                  variant="outline"
+                >
+                  Register
+                </Button>
+              </Link>
             </div>
           </div>
         )}

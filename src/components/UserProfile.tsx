@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import Button from "./ui/Button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function UserProfile({ session: propSession }: { session?: any }) {
   const { data: sessionData, status } = useSession();
@@ -19,20 +20,22 @@ export default function UserProfile({ session: propSession }: { session?: any })
   if (!session?.user) {
     return (
       <div className="flex items-center space-x-2">
-        <Button
-          onClick={() => router.push("/login")}
-          variant="primary"
-          size="sm"
-        >
-          Login
-        </Button>
-        <Button
-          onClick={() => router.push("/register")}
-          variant="outline"
-          size="sm"
-        >
-          Register
-        </Button>
+        <Link href="/login">
+          <Button
+            variant="primary"
+            size="sm"
+          >
+            Login
+          </Button>
+        </Link>
+        <Link href="/register">
+          <Button
+            variant="outline"
+            size="sm"
+          >
+            Register
+          </Button>
+        </Link>
       </div>
     );
   }
