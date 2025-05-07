@@ -45,7 +45,7 @@ export default function RootLayout({
         {/* Camera permissions meta tags */}
         <meta name="permissions-policy" content="camera=self, microphone=self" />
         {/* Allow media devices specifically for camera access */}
-        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; media-src 'self' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" />
+        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; media-src 'self' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline';" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
