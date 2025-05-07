@@ -10,72 +10,74 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        pin: { label: "PIN", type: "password" },
+        pin: { label: "PIN", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials) {
+        try {
+          if (!credentials) {
+            console.log("No credentials provided");
+            return null;
+          }
+
+          // Decide whether to use email/password or PIN for authentication
+          if (credentials.pin) {
+            console.log("Attempting PIN authentication with:", credentials.pin);
+            
+            // PIN authentication
+            const user = await prisma.user.findFirst({
+              where: { pin: credentials.pin }
+            });
+
+            console.log("PIN authentication result:", user ? "User found" : "No user found");
+
+            if (!user) {
+              return null;
+            }
+
+            console.log("PIN authentication successful for user:", user.email);
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              roles: user.roles.map((ur: any) => ur.role.name),
+            };
+          } else {
+            console.log("Attempting email/password authentication");
+            // Email/password authentication
+            const { email, password } = credentials;
+
+            if (!email || !password) {
+              console.log("Missing email or password");
+              return null;
+            }
+
+            const user = await prisma.user.findUnique({
+              where: { email }
+            });
+
+            if (!user) {
+              console.log("No user found with email:", email);
+              return null;
+            }
+
+            const isValidPassword = await compare(password, user.password);
+
+            if (!isValidPassword) {
+              console.log("Invalid password for user:", email);
+              return null;
+            }
+
+            console.log("Email/password authentication successful for user:", email);
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              roles: user.roles.map((ur: any) => ur.role.name),
+            };
+          }
+        } catch (error) {
+          console.error("Authentication error:", error);
           return null;
-        }
-
-        // Decide whether to use email/password or PIN for authentication
-        if (credentials.pin) {
-          // PIN authentication
-          const user = await prisma.user.findFirst({
-            where: { pin: credentials.pin },
-            include: {
-              roles: {
-                include: {
-                  role: true,
-                },
-              },
-            },
-          });
-
-          if (!user) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            roles: user.roles.map((ur) => ur.role.name),
-          };
-        } else {
-          // Email/password authentication
-          const { email, password } = credentials;
-
-          if (!email || !password) {
-            return null;
-          }
-
-          const user = await prisma.user.findUnique({
-            where: { email },
-            include: {
-              roles: {
-                include: {
-                  role: true,
-                },
-              },
-            },
-          });
-
-          if (!user) {
-            return null;
-          }
-
-          const isValidPassword = await compare(password, user.password);
-
-          if (!isValidPassword) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            roles: user.roles.map((ur) => ur.role.name),
-          };
         }
       },
     }),
@@ -104,5 +106,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
   },
-  secret: process.env.AUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 }); 

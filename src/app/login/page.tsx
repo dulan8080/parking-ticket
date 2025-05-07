@@ -73,6 +73,11 @@ export default function LoginPage() {
     }
   };
 
+  const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+    setPin(value);
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center py-8 px-4 bg-gray-50">
       <div className="max-w-md w-full">
@@ -113,7 +118,10 @@ export default function LoginPage() {
           <div className="mb-6">
             <div className="relative bg-gray-200 rounded-full h-12 p-1 shadow-inner w-full max-w-xs mx-auto">
               <button
-                onClick={() => setActiveTab("credentials")}
+                onClick={() => {
+                  setActiveTab("credentials");
+                  setError(null);
+                }}
                 className={`absolute inset-y-1 left-1 rounded-full transition-all duration-300 flex items-center justify-center text-sm font-medium w-[calc(50%-2px)] ${
                   activeTab === "credentials"
                     ? "bg-blue-500 text-white shadow-md translate-x-0"
@@ -123,7 +131,10 @@ export default function LoginPage() {
                 Email & Password
               </button>
               <button
-                onClick={() => setActiveTab("pin")}
+                onClick={() => {
+                  setActiveTab("pin");
+                  setError(null);
+                }}
                 className={`absolute inset-y-1 right-1 rounded-full transition-all duration-300 flex items-center justify-center text-sm font-medium w-[calc(50%-2px)] ${
                   activeTab === "pin"
                     ? "bg-blue-500 text-white shadow-md translate-x-0"
@@ -175,13 +186,13 @@ export default function LoginPage() {
                 </label>
                 <div className="mt-1">
                   <input
-                    type="password"
+                    type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={4}
                     placeholder="Enter 4-digit PIN"
                     value={pin}
-                    onChange={(e) => setPin(e.target.value.slice(0, 4))}
+                    onChange={handlePinChange}
                     disabled={loading}
                     className="block w-full px-4 py-2 text-2xl tracking-widest text-center border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     required
@@ -192,7 +203,7 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={loading}
+                disabled={loading || pin.length !== 4}
               >
                 {loading ? "Logging in..." : "Login with PIN"}
               </Button>

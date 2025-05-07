@@ -99,9 +99,21 @@ export async function deleteVehicleType(id: string): Promise<VehicleType> {
 }
 
 // ParkingEntry Services
-export async function getAllParkingEntries(): Promise<ParkingEntry[]> {
+export async function getAllParkingEntries(userId?: string): Promise<ParkingEntry[]> {
+  // If userId is provided, this means the request is from a regular user
+  // who should only see their own entries
+  if (userId) {
+    return await prisma.parkingEntry.findMany({
+      where: { userId },
+      include: { vehicleType: true },
+      orderBy: { entryTime: 'desc' }
+    });
+  }
+  
+  // Otherwise, return all entries (for admin users)
   return await prisma.parkingEntry.findMany({
-    include: { vehicleType: true }
+    include: { vehicleType: true },
+    orderBy: { entryTime: 'desc' }
   });
 }
 
@@ -134,6 +146,7 @@ export async function createParkingEntry(data: {
   vehicleTypeId: string;
   receiptId: string;
   isPickAndGo?: boolean;
+  userId: string;
 }): Promise<ParkingEntry> {
   return await prisma.parkingEntry.create({
     data: {
@@ -141,7 +154,8 @@ export async function createParkingEntry(data: {
       vehicleTypeId: data.vehicleTypeId,
       receiptId: data.receiptId,
       entryTime: new Date(),
-      isPickAndGo: data.isPickAndGo || false
+      isPickAndGo: data.isPickAndGo || false,
+      userId: data.userId
     },
     include: { vehicleType: true }
   });

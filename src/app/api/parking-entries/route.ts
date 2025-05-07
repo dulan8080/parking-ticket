@@ -1,14 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as dbService from "../../../services/dbService";
+import { auth } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const entries = await dbService.getAllParkingEntries();
-    return NextResponse.json(entries);
+    // Get the user session
+    const session = await auth();
+    
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized access' }, 
+        { status: 401 }
+      );
+    }
+    
+    // Check user roles
+    const userRoles = session.user.roles || [];
+    const isAdmin = userRoles.includes('ADMIN');
+    
+    // Get userId from query param or session
+    const { searchParams } = new URL(request.url);
+    let userId = searchParams.get('userId') || undefined;
+    
+    // If user is not an admin, force filtering by their own userId
+    if (!isAdmin) {
+      userId = session.user.id;
+    }
+    
+    // Get parking entries with appropriate filtering
+    const entries = await dbService.getAllParkingEntries(userId);
+    
+    return NextResponse.json({ entries });
   } catch (error) {
-    console.error("Error fetching parking entries:", error);
+    console.error('Error fetching parking entries:', error);
     return NextResponse.json(
-      { error: "Failed to fetch parking entries" },
+      { 
+        error: 'Failed to retrieve parking entries',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

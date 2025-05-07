@@ -73,6 +73,7 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
   const [parkingEntries, setParkingEntries] = useState<ParkingEntry[]>(() => loadParkingEntries());
   const { data: session, status, update } = useSession();
   const [userSession, setUserSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Update user session when next-auth session changes
   useEffect(() => {
@@ -104,54 +105,45 @@ export const ParkingProvider = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        setIsLoading(true);
+        
         // Check if offline
         if (isOfflineMode()) {
           console.log("Context: App is offline, using cached data");
           return; // Use data already loaded from localStorage
         }
 
-        console.log("Context: Loading initial data");
-        
-        // Fetch vehicle types from API
-        console.log("Context: Fetching vehicle types");
+        // Fetch vehicle types
         const vehicleTypesResponse = await fetch('/api/vehicle-types');
-        console.log("Context: Vehicle types response status:", vehicleTypesResponse.status);
-        
         if (vehicleTypesResponse.ok) {
           const data = await vehicleTypesResponse.json();
-          console.log("Context: Vehicle types fetched successfully:", data);
-          setVehicleTypes(data);
-        } else {
-          const errorText = await vehicleTypesResponse.text();
-          console.error("Context: Error fetching vehicle types:", errorText);
-          // Use mock data if API fails
-          console.log("Context: Using mock vehicle types data");
-          setVehicleTypes(MOCK_VEHICLE_TYPES);
+          if (Array.isArray(data) && data.length > 0) {
+            setVehicleTypes(data);
+            saveVehicleTypes(data); // Cache the data
+          }
         }
 
-        // Fetch parking entries from API
-        console.log("Context: Fetching parking entries");
-        const entriesResponse = await fetch('/api/parking-entries');
-        console.log("Context: Parking entries response status:", entriesResponse.status);
-        
-        if (entriesResponse.ok) {
-          const data = await entriesResponse.json();
-          console.log("Context: Parking entries fetched successfully:", data.length);
-          setParkingEntries(data);
-        } else {
-          const errorText = await entriesResponse.text();
-          console.error("Context: Error fetching parking entries:", errorText);
-          // Use mock data if API fails
-          console.log("Context: Using mock parking entries data");
-          setParkingEntries(MOCK_PARKING_ENTRIES);
+        // Fetch parking entries if user is authenticated
+        if (status === "authenticated") {
+          const entriesResponse = await fetch('/api/parking-entries');
+          if (entriesResponse.ok) {
+            const data = await entriesResponse.json();
+            if (data.entries && Array.isArray(data.entries)) {
+              setParkingEntries(data.entries);
+              saveParkingEntries(data.entries); // Cache the data
+            }
+          }
         }
       } catch (error) {
         console.error("Context: Error loading initial data:", error);
+        // Don't set any state here - we'll use the data from localStorage
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadInitialData();
-  }, []);
+  }, [status]);
 
   const addVehicleType = async (name: string, iconData?: string | null) => {
     try {

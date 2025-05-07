@@ -1,63 +1,73 @@
 import { PrismaClient } from '@prisma/client';
 
-// Create a mock Prisma client
-class MockPrismaClient {
-  // Mock user functionality
-  user = {
-    findUnique: () => Promise.resolve({
-      id: 'mock-user-id',
-      name: 'Mock User',
-      email: 'mock@example.com',
-      password: '$2a$10$eVQqUHXyjUzSzS8RdIf6fe7fVdOt3ux/YhI.MU9VSUZaQCCxJOqfK', // hash for 'admin123'
-      pin: '1234',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      roles: [
-        {
-          role: {
-            name: 'ADMIN'
-          }
-        }
-      ]
-    }),
-    findFirst: () => Promise.resolve({
-      id: 'mock-user-id',
-      name: 'Mock User',
-      email: 'mock@example.com',
-      password: '$2a$10$eVQqUHXyjUzSzS8RdIf6fe7fVdOt3ux/YhI.MU9VSUZaQCCxJOqfK', // hash for 'admin123'
-      pin: '1234',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      roles: [
-        {
-          role: {
-            name: 'ADMIN'
-          }
-        }
-      ]
-    }),
-    create: (data: any) => Promise.resolve({
+// Mock data
+const mockUsers = [
+  {
+    id: 'mock-admin-id',
+    name: 'Admin User',
+    email: 'admin@parking.com',
+    password: '$2a$10$eVQqUHXyjUzSzS8RdIf6fe7fVdOt3ux/YhI.MU9VSUZaQCCxJOqfK', // hash for 'admin123'
+    pin: '1234',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    roles: [{ role: { name: 'ADMIN' } }]
+  },
+  {
+    id: 'mock-operator-id',
+    name: 'Operator User',
+    email: 'operator@parking.com',
+    password: '$2a$10$eVQqUHXyjUzSzS8RdIf6fe7fVdOt3ux/YhI.MU9VSUZaQCCxJOqfK', // hash for 'operator123'
+    pin: '5678',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    roles: [{ role: { name: 'OPERATOR' } }]
+  }
+];
+
+// Simple mock client
+const mockPrisma = {
+  user: {
+    findUnique: async (params: any) => {
+      console.log('Mock findUnique called with params:', params);
+      return mockUsers.find(user => user.email === params?.where?.email) || null;
+    },
+    findFirst: async (params: any) => {
+      console.log('Mock findFirst called with params:', params);
+      return mockUsers.find(user => user.pin === params?.where?.pin) || null;
+    },
+    create: async (data: any) => ({
       id: 'new-user-id',
       ...data.data,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-  };
-
-  // Mock role functionality
-  role = {
-    findUnique: () => Promise.resolve({
-      id: 'role-id',
-      name: 'OPERATOR',
-      description: 'Regular operator',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-  };
-
-  // Mock vehicle type functionality
-  vehicleType = {
-    findMany: () => Promise.resolve([
+  },
+  role: {
+    findUnique: async (params: any) => {
+      const name = params?.where?.name;
+      if (name === 'ADMIN') {
+        return {
+          id: 'admin-role-id',
+          name: 'ADMIN',
+          description: 'Administrator with full access',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      if (name === 'OPERATOR') {
+        return {
+          id: 'operator-role-id',
+          name: 'OPERATOR',
+          description: 'Regular operator',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      return null;
+    }
+  },
+  vehicleType: {
+    findMany: async () => ([
       {
         id: 'car-1',
         name: 'Car',
@@ -81,42 +91,66 @@ class MockPrismaClient {
         ]
       }
     ])
-  };
-
-  // Mock parking entry functionality
-  parkingEntry = {
-    findMany: () => Promise.resolve([]),
-    findUnique: () => Promise.resolve(null),
-    create: (data: any) => Promise.resolve({
-      id: 'entry-id',
+  },
+  parkingEntry: {
+    findMany: async (params: any) => {
+      if (params?.where?.userId) {
+        return [
+          {
+            id: 'entry-1',
+            vehicleNumber: 'ABC123',
+            vehicleTypeId: 'car-1',
+            vehicleType: { id: 'car-1', name: 'Car' },
+            entryTime: new Date(Date.now() - 3600000),
+            exitTime: null,
+            receiptId: 'RCPT-001',
+            userId: params.where.userId
+          }
+        ];
+      }
+      return [
+        {
+          id: 'entry-1',
+          vehicleNumber: 'ABC123',
+          vehicleTypeId: 'car-1',
+          vehicleType: { id: 'car-1', name: 'Car' },
+          entryTime: new Date(Date.now() - 3600000),
+          exitTime: null,
+          receiptId: 'RCPT-001',
+          userId: 'mock-operator-id'
+        },
+        {
+          id: 'entry-2',
+          vehicleNumber: 'XYZ789',
+          vehicleTypeId: 'bike-1',
+          vehicleType: { id: 'bike-1', name: 'Bike' },
+          entryTime: new Date(Date.now() - 7200000),
+          exitTime: new Date(),
+          receiptId: 'RCPT-002',
+          totalAmount: 40,
+          duration: 2,
+          userId: 'mock-admin-id'
+        }
+      ];
+    },
+    findUnique: async () => null,
+    create: async (data: any) => ({
+      id: 'entry-' + Date.now(),
       ...data.data,
       entryTime: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-  };
-}
-
-let prisma: PrismaClient | MockPrismaClient;
-
-if (process.env.NODE_ENV === 'production') {
-  try {
-    prisma = new PrismaClient();
-  } catch (error) {
-    console.error("Failed to initialize Prisma client in production:", error);
-    prisma = new MockPrismaClient() as unknown as PrismaClient;
+  },
+  $connect: async () => {
+    console.log('Mock connection established');
+    return Promise.resolve();
+  },
+  $disconnect: async () => {
+    console.log('Mock connection closed');
+    return Promise.resolve();
   }
-} else {
-  // In development, create a new instance or use existing one
-  if (!(global as any).prisma) {
-    try {
-      (global as any).prisma = new PrismaClient();
-    } catch (error) {
-      console.error("Failed to initialize Prisma client in development:", error);
-      (global as any).prisma = new MockPrismaClient();
-    }
-  }
-  prisma = (global as any).prisma;
-}
+};
 
-export default prisma; 
+// Export the mock client directly
+export default mockPrisma; 
