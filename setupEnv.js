@@ -1,16 +1,22 @@
 const fs = require('fs');
+const path = require('path');
 
-// Check if .env.local exists, if not create it with default values
-if (!fs.existsSync('.env.local')) {
+// Create .env.local if it doesn't exist
+const envFile = path.join(process.cwd(), '.env.local');
+
+if (!fs.existsSync(envFile)) {
   console.log('Creating default .env.local file');
   
-  const envContent = `
-AUTH_SECRET=default-auth-secret-for-development-only
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/parking_ticket
-DIRECT_URL=postgresql://postgres:postgres@localhost:5432/parking_ticket
-`;
-
-  fs.writeFileSync('.env.local', envContent.trim());
+  // Use Supabase pooling URL for DATABASE_URL and direct URL for DIRECT_URL
+  const databaseUrl = process.env.DATABASE_URL || 
+    'postgres://postgres.yhnpkadalwyrhigzhecu:lssObALtAejUhn7J@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x';
+  
+  const directUrl = process.env.DIRECT_URL || 
+    'postgres://postgres.yhnpkadalwyrhigzhecu:lssObALtAejUhn7J@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require';
+  
+  const envContent = `DATABASE_URL=${databaseUrl}\nDIRECT_URL=${directUrl}\n`;
+  
+  fs.writeFileSync(envFile, envContent);
   console.log('Created .env.local with default values');
 }
 
