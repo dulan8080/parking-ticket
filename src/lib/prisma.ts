@@ -152,29 +152,31 @@ const mockPrisma = {
   }
 };
 
-// Global is used here to maintain a cached connection across hot reloads in development
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-// Initialize Prisma client
-let prisma: PrismaClient | typeof mockPrisma;
+// Initialize Prisma client with proper error handling
+let prisma: PrismaClient | any;
 
 if (process.env.DATABASE_URL) {
   try {
-    // Use real Prisma client when DATABASE_URL is provided
-    prisma = globalForPrisma.prisma || new PrismaClient();
+    // For hot reloading in development
+    const globalForPrisma = global as unknown as { prisma: PrismaClient };
     
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = prisma;
+    if (process.env.NODE_ENV !== 'production' && globalForPrisma.prisma) {
+      prisma = globalForPrisma.prisma;
+      console.log('Using existing Prisma client instance');
+    } else {
+      prisma = new PrismaClient();
+      if (process.env.NODE_ENV !== 'production') {
+        globalForPrisma.prisma = prisma;
+      }
+      console.log('Created new Prisma client with database connection');
     }
-    
-    console.log('Using real Prisma client with database connection');
   } catch (error) {
-    console.error('Error initializing Prisma client:', error);
+    console.error('Failed to initialize Prisma client:', error);
     console.warn('Falling back to mock Prisma client');
     prisma = mockPrisma;
   }
 } else {
-  console.info('No DATABASE_URL found, using mock Prisma client');
+  console.warn('No DATABASE_URL found, using mock Prisma client');
   prisma = mockPrisma;
 }
 
