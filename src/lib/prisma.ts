@@ -152,5 +152,30 @@ const mockPrisma = {
   }
 };
 
-// Export the mock client directly
-export default mockPrisma; 
+// Global is used here to maintain a cached connection across hot reloads in development
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+// Initialize Prisma client
+let prisma: PrismaClient | typeof mockPrisma;
+
+if (process.env.DATABASE_URL) {
+  try {
+    // Use real Prisma client when DATABASE_URL is provided
+    prisma = globalForPrisma.prisma || new PrismaClient();
+    
+    if (process.env.NODE_ENV !== 'production') {
+      globalForPrisma.prisma = prisma;
+    }
+    
+    console.log('Using real Prisma client with database connection');
+  } catch (error) {
+    console.error('Error initializing Prisma client:', error);
+    console.warn('Falling back to mock Prisma client');
+    prisma = mockPrisma;
+  }
+} else {
+  console.info('No DATABASE_URL found, using mock Prisma client');
+  prisma = mockPrisma;
+}
+
+export default prisma; 

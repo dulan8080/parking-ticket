@@ -37,6 +37,41 @@ The application is set up for deployment on Vercel with environment variables fo
    - `DATABASE_URL`: Your PostgreSQL connection string
    - `DIRECT_URL`: Same as your `DATABASE_URL` if not using connection pooling
 
+### Supabase Integration
+
+To use Supabase as your database provider:
+
+1. **Create a Supabase Project**:
+   - Sign up or log in at [Supabase](https://supabase.com)
+   - Create a new project with a name of your choice
+   - Note your database password during setup
+
+2. **Get Your Connection Strings**:
+   - Go to Project Settings → Database
+   - Find the Connection String section
+   - Copy the URI format: 
+     ```
+     postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:5432/postgres
+     ```
+   - Replace `[YOUR-PASSWORD]` with your database password
+
+3. **Configure Vercel Environment Variables**:
+   - Set `DATABASE_URL` and `DIRECT_URL` to your Supabase connection string
+   - For connection pooling (recommended):
+     - `DATABASE_URL`: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:6543/postgres?pgbouncer=true`
+     - `DIRECT_URL`: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:5432/postgres`
+
+4. **Trigger a Deployment**:
+   - Redeploy your application to Vercel
+   - The migrations will run automatically during deployment
+   - You can verify the connection at `/debug/supabase` in your deployed app
+
+5. **Troubleshooting**:
+   - If tables are not created, manually run migrations using Vercel CLI
+   - Check for connection errors in your Vercel logs
+   - Verify that your Supabase IP allow list includes Vercel deployment IPs
+   - See the detailed guide in `SUPABASE_SETUP.md`
+
 ### Deployment
 
 1. Connect your GitHub repository to Vercel
@@ -78,4 +113,3 @@ After making changes to your Prisma schema:
 ## Development
 
 To run the project locally:
-```

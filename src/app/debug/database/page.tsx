@@ -121,6 +121,13 @@ export default function DatabaseDebugPage() {
                 </button>
               )}
 
+              <Link
+                href="/debug/supabase"
+                className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-md shadow transition-colors text-center"
+              >
+                Advanced Supabase Debug
+              </Link>
+
               <button
                 onClick={() => setShowTroubleshooting(!showTroubleshooting)}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md shadow transition-colors"

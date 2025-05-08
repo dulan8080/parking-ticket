@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "node setupEnv.js && prisma generate && next build",
-    "build-with-migrate": "node setupEnv.js && prisma generate && prisma migrate deploy && next build",
+    "build": "node setupEnv.js && prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
